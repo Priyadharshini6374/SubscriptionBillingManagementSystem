@@ -1,13 +1,9 @@
-1. Physics Laboratory Simulator
+Subscription Billing Management System
 
-Simulate experiments such as:
+Features
 
-Projectile motion
-Pendulum
-Collision
-Friction
-Spring and mass
-Gravity
-Free-fall
-
-Animation work: object movement, vectors, force arrows, collision detection, graphs, adjustable parameters.
+Plans management
+User subscriptions
+Renewal tracking
+Payment history
+Revenue dashboard
