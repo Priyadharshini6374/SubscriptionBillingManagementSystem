@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import BackButton from "../components/BackButton";
 import CustomerLogoutButton from "../components/CustomerLogoutButton";
+import API_URL from "../api";
 
 function CancelSubscription() {
   const { id } = useParams();
@@ -29,7 +30,7 @@ function CancelSubscription() {
         }
 
         const response = await fetch(
-          `http://localhost:5000/api/subscriptions/${id}`
+          `${API_URL}/api/subscriptions/${id}`
         );
 
         const data = await response.json();
@@ -76,7 +77,7 @@ function CancelSubscription() {
       setError("");
 
       const response = await fetch(
-        `http://localhost:5000/api/subscriptions/${id}/cancel`,
+        `${API_URL}/api/subscriptions/${id}/cancel`,
         {
           method: "PUT",
           headers: {

@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import BackButton from "../components/BackButton";
+import API_URL from "../api";
 
 function EditCustomer() {
   const { id } = useParams();
@@ -29,7 +30,7 @@ function EditCustomer() {
       setError("");
 
       const response = await fetch(
-        `http://localhost:5000/api/customers/${id}`
+        `${API_URL}/api/customers/${id}`
       );
 
       const data = await response.json();
@@ -79,7 +80,7 @@ function EditCustomer() {
       setSaving(true);
 
       const response = await fetch(
-        `http://localhost:5000/api/customers/${id}`,
+        `${API_URL}/api/customers/${id}`,
         {
           method: "PUT",
           headers: {

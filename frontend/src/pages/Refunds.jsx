@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import BackButton from "../components/BackButton";
+import API_URL from "../api";
 
 function Refunds() {
   const navigate = useNavigate();
@@ -15,7 +16,7 @@ function Refunds() {
   const fetchRefunds = () => {
     setLoading(true);
 
-    fetch("http://localhost:5000/api/refunds")
+    fetch(`${API_URL}/api/refunds`)
       .then((response) => {
         if (!response.ok) {
           throw new Error("Failed to fetch refunds");

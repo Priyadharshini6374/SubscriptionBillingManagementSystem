@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import BackButton from "../components/BackButton";
+import API_URL from "../api";
 
 function RefundDetails() {
   const { id } = useParams();
@@ -17,7 +18,7 @@ function RefundDetails() {
   const fetchRefund = () => {
     setLoading(true);
 
-    fetch(`http://localhost:5000/api/refunds/${id}`)
+    fetch(`${API_URL}/api/refunds/${id}`)
       .then((response) => {
         if (!response.ok) {
           throw new Error("Failed to fetch refund details");
@@ -85,7 +86,7 @@ function RefundDetails() {
 
     try {
       const response = await fetch(
-        `http://localhost:5000/api/refunds/${id}/status`,
+        `${API_URL}/api/refunds/${id}/status`,
         {
           method: "PUT",
           headers: {

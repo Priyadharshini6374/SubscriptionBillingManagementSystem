@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BackButton from "../components/BackButton";
 import CustomerLogoutButton from "../components/CustomerLogoutButton";
+import API_URL from "../api";
 
 function CustomerPlans() {
   const navigate = useNavigate();
@@ -16,7 +17,7 @@ function CustomerPlans() {
       setError("");
 
       const response = await fetch(
-        "http://localhost:5000/api/plans"
+        `${API_URL}/api/plans`
       );
 
       const data = await response.json();

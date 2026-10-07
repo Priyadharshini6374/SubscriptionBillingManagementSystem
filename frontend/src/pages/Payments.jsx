@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import BackButton from "../components/BackButton";
+import API_URL from "../api";
 
 function Payments() {
   const navigate = useNavigate();
@@ -13,7 +14,7 @@ function Payments() {
   const fetchPayments = async () => {
     try {
       const response = await fetch(
-        "http://localhost:5000/api/payments"
+        `${API_URL}/api/payments`
       );
 
       const data = await response.json();

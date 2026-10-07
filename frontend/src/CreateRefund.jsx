@@ -20,7 +20,7 @@ function CreateRefund() {
   });
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/payments")
+    fetch("${API_URL}/api/payments")
       .then((response) => {
         if (!response.ok) {
           throw new Error("Failed to fetch payments");
@@ -91,7 +91,7 @@ function CreateRefund() {
 
     try {
       const response = await fetch(
-        "http://localhost:5000/api/refunds",
+        "${API_URL}/api/refunds",
         {
           method: "POST",
           headers: {

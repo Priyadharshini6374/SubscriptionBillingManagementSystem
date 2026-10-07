@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import BackButton from "../components/BackButton";
+import API_URL from "../api";
 
 function Subscriptions() {
   const navigate = useNavigate();
@@ -22,7 +23,7 @@ function Subscriptions() {
       setError("");
 
       const response = await fetch(
-        "http://localhost:5000/api/subscriptions"
+        `${API_URL}/api/subscriptions`
       );
 
       const data = await response.json();

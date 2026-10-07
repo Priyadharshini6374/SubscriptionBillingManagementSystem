@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import BackButton from "../components/BackButton";
+import API_URL from "../api";
 
 function SubscriptionDetails() {
   const { id } = useParams();
@@ -23,7 +24,7 @@ function SubscriptionDetails() {
       setError("");
 
       const response = await fetch(
-        `http://localhost:5000/api/subscriptions/${id}`
+        `${API_URL}/api/subscriptions/${id}`
       );
 
       const data = await response.json();

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import BackButton from "../components/BackButton";
+import API_URL from "../api";
 
 function Settings() {
   const [formData, setFormData] = useState({
@@ -24,7 +25,7 @@ function Settings() {
       setError("");
 
       const response = await fetch(
-        "http://localhost:5000/api/settings"
+        `${API_URL}/api/settings`
       );
 
       const data = await response.json();
@@ -76,7 +77,7 @@ function Settings() {
       setError("");
 
       const response = await fetch(
-        "http://localhost:5000/api/settings",
+        `${API_URL}/api/settings`,
         {
           method: "PUT",
           headers: {

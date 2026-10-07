@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import BackButton from "../components/BackButton";
+import API_URL from "../api";
 
 function CreatePayment() {
   const navigate = useNavigate();
@@ -28,7 +29,7 @@ function CreatePayment() {
   const fetchInvoices = async () => {
     try {
       const response = await fetch(
-        "http://localhost:5000/api/invoices"
+        `${API_URL}/api/invoices`
       );
 
       const data = await response.json();
@@ -65,7 +66,7 @@ function CreatePayment() {
       setSubmitting(true);
 
       const response = await fetch(
-        "http://localhost:5000/api/payments",
+        `${API_URL}/api/payments`,
         {
           method: "POST",
           headers: {

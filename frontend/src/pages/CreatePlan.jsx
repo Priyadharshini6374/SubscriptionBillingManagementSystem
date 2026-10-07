@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import BackButton from "../components/BackButton";
+import API_URL from "../api";
 
 function CreatePlan() {
   const navigate = useNavigate();
@@ -45,7 +46,7 @@ function CreatePlan() {
     }
 
     try {
-      const response = await fetch("http://localhost:5000/api/plans", {
+      const response = await fetch(`${API_URL}/api/plans`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

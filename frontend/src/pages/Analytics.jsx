@@ -11,6 +11,7 @@ import {
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import BackButton from "../components/BackButton";
+import API_URL from "../api";
 
 function Analytics() {
   const [analytics, setAnalytics] = useState(null);
@@ -18,7 +19,7 @@ function Analytics() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/analytics")
+    fetch(`${API_URL}/api/analytics`)
       .then((response) => {
         if (!response.ok) {
           throw new Error("Failed to fetch analytics");

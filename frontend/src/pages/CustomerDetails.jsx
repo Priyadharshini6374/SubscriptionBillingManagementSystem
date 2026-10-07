@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
+import API_URL from "../api";
+
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import BackButton from "../components/BackButton";
@@ -23,7 +25,7 @@ function CustomerDetails() {
       setError("");
 
       const response = await fetch(
-        `http://localhost:5000/api/customers/${id}`
+        `${API_URL}/api/customers/${id}`
       );
 
       const data = await response.json();

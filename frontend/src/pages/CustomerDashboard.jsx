@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import API_URL from "../api";
 import CustomerLogoutButton from "../components/CustomerLogoutButton";
 
 function CustomerDashboard() {
@@ -25,7 +26,7 @@ function CustomerDashboard() {
     const fetchDashboard = async () => {
       try {
         const response = await fetch(
-          `http://localhost:5000/api/customer-dashboard/${user.id}`
+          `${API_URL}/api/customer-dashboard/${user.id}`
         );
 
         const data = await response.json();

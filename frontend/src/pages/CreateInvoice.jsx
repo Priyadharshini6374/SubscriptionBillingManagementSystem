@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import BackButton from "../components/BackButton";
+import API_URL from "../api";
 
 function CreateInvoice() {
   const navigate = useNavigate();
@@ -33,8 +34,8 @@ function CreateInvoice() {
 
       const [customersResponse, subscriptionsResponse] =
         await Promise.all([
-          fetch("http://localhost:5000/api/customers"),
-          fetch("http://localhost:5000/api/subscriptions"),
+          fetch(`${API_URL}/api/customers`),
+          fetch(`${API_URL}/api/subscriptions`),
         ]);
 
       const customersData =
@@ -148,7 +149,7 @@ function CreateInvoice() {
       setSaving(true);
 
       const response = await fetch(
-        "http://localhost:5000/api/invoices",
+        `${API_URL}/api/invoices`,
         {
           method: "POST",
           headers: {

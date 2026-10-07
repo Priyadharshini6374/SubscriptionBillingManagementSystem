@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import API_URL from "../api";
 
 function CustomerLogin() {
   const navigate = useNavigate();
@@ -24,7 +25,7 @@ function CustomerLogin() {
       setLoading(true);
 
       const response = await fetch(
-        "http://localhost:5000/api/auth/login",
+        `${API_URL}/api/auth/login`,
         {
           method: "POST",
           headers: {
@@ -192,7 +193,7 @@ function CustomerLogin() {
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        d="M6.61 6.61C4.62 8.03 3.27 10.1 2.5 12c1.23 2.75 4.5 7.25 9.5 7.25 1.61 0 3.04-.4 4.31-1.03"
+                        d="M6.61 6.61C4.62 6.61 4.62 8.03 3.27 10.1 2.5 12c1.23 2.75 4.5 7.25 9.5 7.25 1.61 0 3.04-.4 4.31-1.03"
                       />
                     </svg>
                   ) : (

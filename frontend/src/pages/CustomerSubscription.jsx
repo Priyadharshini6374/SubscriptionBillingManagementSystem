@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import BackButton from "../components/BackButton";
 import CustomerLogoutButton from "../components/CustomerLogoutButton";
+import API_URL from "../api";
 
 function CustomerSubscription() {
   const navigate = useNavigate();
@@ -25,7 +26,7 @@ function CustomerSubscription() {
         }
 
         const response = await fetch(
-          `http://localhost:5000/api/subscriptions?userId=${customerUser.id}`
+          `${API_URL}/api/subscriptions?userId=${customerUser.id}`
         );
 
         if (!response.ok) {

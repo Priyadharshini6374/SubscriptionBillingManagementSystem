@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import BackButton from "../components/BackButton";
+import API_URL from "../api";
 
 function ChangePlan() {
   const { id } = useParams();
@@ -28,8 +29,8 @@ function ChangePlan() {
 
       const [subscriptionResponse, plansResponse] =
         await Promise.all([
-          fetch(`http://localhost:5000/api/subscriptions/${id}`),
-          fetch("http://localhost:5000/api/plans"),
+          fetch(`${API_URL}/api/subscriptions/${id}`),
+          fetch(`${API_URL}/api/plans`),
         ]);
 
       const subscriptionData =
@@ -99,7 +100,7 @@ function ChangePlan() {
       setSaving(true);
 
       const response = await fetch(
-        `http://localhost:5000/api/subscriptions/${id}/change-plan`,
+        `${API_URL}/api/subscriptions/${id}/change-plan`,
         {
           method: "PUT",
           headers: {

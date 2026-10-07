@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import BackButton from "../components/BackButton";
 import CustomerLogoutButton from "../components/CustomerLogoutButton";
+import API_URL from "../api";
 
 export default function CustomerPay() {
   const { id } = useParams();
@@ -23,7 +24,7 @@ export default function CustomerPay() {
       return;
     }
 
-    fetch(`http://localhost:5000/api/invoices/${id}`)
+    fetch(`${API_URL}/api/invoices/${id}`)
       .then((res) => {
         if (!res.ok) {
           throw new Error("Failed to fetch invoice");
@@ -55,7 +56,7 @@ export default function CustomerPay() {
 
     try {
       const response = await fetch(
-        "http://localhost:5000/api/payments",
+        `${API_URL}/api/payments`,
         {
           method: "POST",
           headers: {

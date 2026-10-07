@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import BackButton from "../components/BackButton";
+import API_URL from "../api";
 
 function CreateCoupon() {
   const navigate = useNavigate();
@@ -44,7 +45,7 @@ function CreateCoupon() {
       setSubmitting(true);
 
       const response = await fetch(
-        "http://localhost:5000/api/coupons",
+        `${API_URL}/api/coupons`,
         {
           method: "POST",
           headers: {
@@ -93,7 +94,6 @@ function CreateCoupon() {
             </p>
           </div>
 
-
           {/* Form */}
           <div className="max-w-3xl rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
 
@@ -122,7 +122,6 @@ function CreateCoupon() {
                 </p>
               </div>
 
-
               {/* Discount Type */}
               <div>
                 <label className="mb-2 block text-sm font-medium text-gray-700">
@@ -144,7 +143,6 @@ function CreateCoupon() {
                   </option>
                 </select>
               </div>
-
 
               {/* Discount Value */}
               <div>
@@ -184,7 +182,6 @@ function CreateCoupon() {
                 )}
               </div>
 
-
               {/* Maximum Uses */}
               <div>
                 <label className="mb-2 block text-sm font-medium text-gray-700">
@@ -206,7 +203,6 @@ function CreateCoupon() {
                 </p>
               </div>
 
-
               {/* Expiry */}
               <div>
                 <label className="mb-2 block text-sm font-medium text-gray-700">
@@ -225,7 +221,6 @@ function CreateCoupon() {
                   Leave empty if the coupon does not expire.
                 </p>
               </div>
-
 
               {/* Status */}
               <div>
@@ -248,7 +243,6 @@ function CreateCoupon() {
                   </option>
                 </select>
               </div>
-
 
               {/* Preview */}
               <div className="rounded-lg bg-gray-50 p-5">
@@ -287,7 +281,6 @@ function CreateCoupon() {
 
                 </div>
               </div>
-
 
               {/* Buttons */}
               <div className="flex justify-end gap-3 border-t border-gray-200 pt-6">

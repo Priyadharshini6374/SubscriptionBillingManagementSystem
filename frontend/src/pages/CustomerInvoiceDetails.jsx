@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
+import API_URL from "../api";
+
 import BackButton from "../components/BackButton";
 import CustomerLogoutButton from "../components/CustomerLogoutButton";
 
@@ -26,7 +28,7 @@ function CustomerInvoiceDetails() {
         }
 
         const response = await fetch(
-          `http://localhost:5000/api/invoices/${id}`
+          `${API_URL}/api/invoices/${id}`
         );
 
         const data = await response.json();

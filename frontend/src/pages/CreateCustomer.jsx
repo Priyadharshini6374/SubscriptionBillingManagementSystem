@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import BackButton from "../components/BackButton";
+import API_URL from "../api";
 
 function CreateCustomer() {
   const navigate = useNavigate();
@@ -69,7 +71,7 @@ function CreateCustomer() {
       setSaving(true);
 
       const response = await fetch(
-        "http://localhost:5000/api/customers",
+        `${API_URL}/api/customers`,
         {
           method: "POST",
           headers: {
@@ -191,7 +193,6 @@ function CreateCustomer() {
                     className="w-full rounded-lg border border-gray-300 px-4 py-3 pr-12 outline-none focus:border-gray-500"
                   />
 
-                  {/* Normal Eye Icon */}
                   <button
                     type="button"
                     onClick={() =>
@@ -233,7 +234,6 @@ function CreateCustomer() {
                           strokeLinejoin="round"
                           d="M2.036 12.322a1.012 1.012 0 010-.644C3.423 7.51 7.523 4.5 12 4.5s8.577 3.01 9.964 7.178a1.012 1.012 0 010 .644C20.577 16.49 16.477 19.5 12 19.5s-8.577-3.01-9.964-7.178z"
                         />
-
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -270,7 +270,6 @@ function CreateCustomer() {
                     className="w-full rounded-lg border border-gray-300 px-4 py-3 pr-12 outline-none focus:border-gray-500"
                   />
 
-                  {/* Normal Eye Icon */}
                   <button
                     type="button"
                     onClick={() =>
@@ -314,7 +313,6 @@ function CreateCustomer() {
                           strokeLinejoin="round"
                           d="M2.036 12.322a1.012 1.012 0 010-.644C3.423 7.51 7.523 4.5 12 4.5s8.577 3.01 9.964 7.178a1.012 1.012 0 010 .644C20.577 16.49 16.477 19.5 12 19.5s-8.577-3.01-9.964-7.178z"
                         />
-
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -354,6 +352,7 @@ function CreateCustomer() {
 
             </form>
           </div>
+
         </div>
       </main>
     </div>
@@ -361,4 +360,3 @@ function CreateCustomer() {
 }
 
 export default CreateCustomer;
-

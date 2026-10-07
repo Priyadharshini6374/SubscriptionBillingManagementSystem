@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import BackButton from "../components/BackButton";
 import CustomerLogoutButton from "../components/CustomerLogoutButton";
+import API_URL from "../api";
 
 function CustomerSubscribe() {
   const navigate = useNavigate();
@@ -16,7 +17,7 @@ function CustomerSubscribe() {
     const fetchPlan = async () => {
       try {
         const response = await fetch(
-          `http://localhost:5000/api/plans/${id}`
+          `${API_URL}/api/plans/${id}`
         );
 
         const data = await response.json();
@@ -59,7 +60,7 @@ function CustomerSubscribe() {
       const customer = JSON.parse(storedUser);
 
       const response = await fetch(
-        "http://localhost:5000/api/subscriptions",
+        `${API_URL}/api/subscriptions`,
         {
           method: "POST",
           headers: {

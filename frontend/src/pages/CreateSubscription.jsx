@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import BackButton from "../components/BackButton";
+import API_URL from "../api";
 
 function CreateSubscription() {
   const navigate = useNavigate();
@@ -36,8 +37,8 @@ function CreateSubscription() {
 
       const [customersResponse, plansResponse] =
         await Promise.all([
-          fetch("http://localhost:5000/api/customers"),
-          fetch("http://localhost:5000/api/plans"),
+          fetch(`${API_URL}/api/customers`),
+          fetch(`${API_URL}/api/plans`),
         ]);
 
       const customersData =
@@ -151,7 +152,7 @@ function CreateSubscription() {
       setCoupon(null);
 
       const response = await fetch(
-        "http://localhost:5000/api/coupons/validate",
+        `${API_URL}/api/coupons/validate`,
         {
           method: "POST",
           headers: {
@@ -213,7 +214,7 @@ function CreateSubscription() {
       setSaving(true);
 
       const response = await fetch(
-        "http://localhost:5000/api/subscriptions",
+        `${API_URL}/api/subscriptions`,
         {
           method: "POST",
           headers: {
@@ -610,4 +611,3 @@ function CreateSubscription() {
 }
 
 export default CreateSubscription;
-

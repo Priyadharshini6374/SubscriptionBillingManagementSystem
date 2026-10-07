@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import BackButton from "../components/BackButton";
 import CustomerLogoutButton from "../components/CustomerLogoutButton";
+import API_URL from "../api";
 
 function CustomerPaymentDetails() {
   const { id } = useParams();
@@ -26,7 +27,7 @@ function CustomerPaymentDetails() {
         }
 
         const response = await fetch(
-          `http://localhost:5000/api/payments/${id}?userId=${customerUser.id}`
+          `${API_URL}/api/payments/${id}?userId=${customerUser.id}`
         );
 
         const data = await response.json();

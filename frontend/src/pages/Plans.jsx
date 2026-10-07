@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import BackButton from "../components/BackButton";
+import API_URL from "../api";
 
 function Plans() {
   const navigate = useNavigate();
@@ -21,7 +22,7 @@ function Plans() {
       setLoading(true);
       setError("");
 
-      const response = await fetch("http://localhost:5000/api/plans");
+      const response = await fetch(`${API_URL}/api/plans`);
 
       if (!response.ok) {
         throw new Error("Failed to fetch plans");

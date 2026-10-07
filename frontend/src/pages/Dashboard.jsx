@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import BackButton from "../components/BackButton";
+import API_URL from "../api";
 
 function Dashboard() {
   const [dashboard, setDashboard] = useState({
@@ -21,7 +22,7 @@ function Dashboard() {
       setError("");
 
       const response = await fetch(
-        "http://localhost:5000/api/dashboard"
+        `${API_URL}/api/dashboard`
       );
 
       if (!response.ok) {

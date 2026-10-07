@@ -1,6 +1,7 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
+import API_URL from "../api";
 
 import BackButton from "../components/BackButton";
 import CustomerLogoutButton from "../components/CustomerLogoutButton";
@@ -26,7 +27,7 @@ function CustomerInvoices() {
         }
 
         const response = await fetch(
-          `http://localhost:5000/api/invoices?userId=${customerUser.id}`
+          `${API_URL}/api/invoices?userId=${customerUser.id}`
         );
 
         const data = await response.json();
@@ -188,4 +189,3 @@ function CustomerInvoices() {
 }
 
 export default CustomerInvoices;
-

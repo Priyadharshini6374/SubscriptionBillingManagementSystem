@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import BackButton from "../components/BackButton";
+import API_URL from "../api";
 
 function EditPlan() {
   const { id } = useParams();
@@ -35,7 +36,7 @@ function EditPlan() {
       setError("");
 
       const response = await fetch(
-        `http://localhost:5000/api/plans/${id}`
+        `${API_URL}/api/plans/${id}`
       );
 
       const data = await response.json();
@@ -99,7 +100,7 @@ function EditPlan() {
       setSaving(true);
 
       const response = await fetch(
-        `http://localhost:5000/api/plans/${id}`,
+        `${API_URL}/api/plans/${id}`,
         {
           method: "PUT",
           headers: {

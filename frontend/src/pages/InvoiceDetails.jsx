@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import BackButton from "../components/BackButton";
+import API_URL from "../api";
 
 function InvoiceDetails() {
   const { id } = useParams();
@@ -23,7 +24,7 @@ function InvoiceDetails() {
       setError("");
 
       const response = await fetch(
-        `http://localhost:5000/api/invoices/${id}`
+        `${API_URL}/api/invoices/${id}`
       );
 
       const data = await response.json();

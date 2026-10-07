@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import BackButton from "../components/BackButton";
+import API_URL from "../api";
 
 function CouponDetails() {
   const { id } = useParams();
@@ -10,7 +11,7 @@ function CouponDetails() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch(`http://localhost:5000/api/coupons/${id}`)
+    fetch(`${API_URL}/api/coupons/${id}`)
       .then((response) => {
         if (!response.ok) {
           throw new Error("Coupon not found");

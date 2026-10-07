@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
+import API_URL from "../api";
+
 import BackButton from "../components/BackButton";
 import CustomerLogoutButton from "../components/CustomerLogoutButton";
 
@@ -21,9 +23,9 @@ function CustomerChangePlan() {
         const [subscriptionResponse, plansResponse] =
           await Promise.all([
             fetch(
-              `http://localhost:5000/api/subscriptions/${id}`
+              `${API_URL}/api/subscriptions/${id}`
             ),
-            fetch("http://localhost:5000/api/plans"),
+            fetch(`${API_URL}/api/plans`),
           ]);
 
         if (!subscriptionResponse.ok || !plansResponse.ok) {
@@ -78,7 +80,7 @@ function CustomerChangePlan() {
       setError("");
 
       const response = await fetch(
-        `http://localhost:5000/api/subscriptions/${id}/change-plan`,
+        `${API_URL}/api/subscriptions/${id}/change-plan`,
         {
           method: "PUT",
           headers: {
@@ -297,3 +299,4 @@ function CustomerChangePlan() {
 }
 
 export default CustomerChangePlan;
+

@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import BackButton from "../components/BackButton";
+import API_URL from "../api";
 
 function Customers() {
   const navigate = useNavigate();
@@ -22,7 +23,7 @@ function Customers() {
       setError("");
 
       const response = await fetch(
-        "http://localhost:5000/api/customers"
+        `${API_URL}/api/customers`
       );
 
       if (!response.ok) {

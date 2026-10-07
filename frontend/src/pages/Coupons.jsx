@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import BackButton from "../components/BackButton";
+import API_URL from "../api";
 
 function Coupons() {
   const navigate = useNavigate();
@@ -13,7 +14,7 @@ function Coupons() {
   const fetchCoupons = async () => {
     try {
       const response = await fetch(
-        "http://localhost:5000/api/coupons"
+        `${API_URL}/api/coupons`
       );
 
       const data = await response.json();
@@ -91,7 +92,6 @@ function Coupons() {
             </button>
 
           </div>
-
 
           {/* Coupon Table */}
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -176,7 +176,6 @@ function Coupons() {
 
                       </td>
 
-
                       <td className="px-6 py-4">
 
                         <span className="text-sm font-semibold text-gray-800">
@@ -191,7 +190,6 @@ function Coupons() {
 
                       </td>
 
-
                       <td className="px-6 py-4">
 
                         <p className="text-sm text-gray-700">
@@ -203,7 +201,6 @@ function Coupons() {
 
                       </td>
 
-
                       <td className="px-6 py-4">
 
                         <p className="text-sm text-gray-600">
@@ -211,7 +208,6 @@ function Coupons() {
                         </p>
 
                       </td>
-
 
                       <td className="px-6 py-4">
 
@@ -224,7 +220,6 @@ function Coupons() {
                         </span>
 
                       </td>
-
 
                       <td className="px-6 py-4">
 

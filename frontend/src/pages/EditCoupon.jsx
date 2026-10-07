@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import BackButton from "../components/BackButton";
+import API_URL from "../api";
 
 function EditCoupon() {
   const { id } = useParams();
@@ -27,7 +28,7 @@ function EditCoupon() {
   const fetchCoupon = async () => {
     try {
       const response = await fetch(
-        `http://localhost:5000/api/coupons/${id}`
+        `${API_URL}/api/coupons/${id}`
       );
 
       const data = await response.json();
@@ -84,7 +85,7 @@ function EditCoupon() {
       setSubmitting(true);
 
       const response = await fetch(
-        `http://localhost:5000/api/coupons/${id}`,
+        `${API_URL}/api/coupons/${id}`,
         {
           method: "PUT",
           headers: {
@@ -123,7 +124,7 @@ function EditCoupon() {
 
     try {
       const response = await fetch(
-        `http://localhost:5000/api/coupons/${id}`,
+        `${API_URL}/api/coupons/${id}`,
         {
           method: "DELETE",
         }

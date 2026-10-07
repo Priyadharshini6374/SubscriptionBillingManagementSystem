@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import BackButton from "../components/BackButton";
+import API_URL from "../api";
 
 function Reports() {
   const [report, setReport] = useState(null);
@@ -14,7 +15,7 @@ function Reports() {
       setError("");
 
       const response = await fetch(
-        "http://localhost:5000/api/reports"
+        `${API_URL}/api/reports`
       );
 
       const data = await response.json();
