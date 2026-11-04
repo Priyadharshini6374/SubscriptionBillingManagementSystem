@@ -1,9 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
+import Sidebar from "../components/Sidebar";
+import Topbar from "../components/Topbar";
+import CustomerNavbar from "../components/CustomerNavbar";
 import BackButton from "../components/BackButton";
-import CustomerLogoutButton from "../components/CustomerLogoutButton";
 import API_URL from "../api";
+import { AmbientBackground, GlassCard, LoadingSpinner, ErrorBanner } from "../components/UI";
+import { IconAlertCircle } from "../components/Icons";
 
 function CancelSubscription() {
   const { id } = useParams();
@@ -14,36 +18,33 @@ function CancelSubscription() {
   const [cancelling, setCancelling] = useState(false);
   const [error, setError] = useState("");
 
+  const customerUser = JSON.parse(
+    localStorage.getItem("customerUser") || "null"
+  );
+  const adminUser = JSON.parse(
+    localStorage.getItem("user") || "null"
+  );
+  const isAdmin = Boolean(adminUser && adminUser.role === "ADMIN");
+
   useEffect(() => {
     const fetchSubscription = async () => {
       try {
         setLoading(true);
         setError("");
 
-        const customerUser = JSON.parse(
-          localStorage.getItem("customerUser") || "null"
-        );
-
-        if (!customerUser?.id) {
-          setError("Customer information not found.");
+        if (!customerUser?.id && !isAdmin) {
+          setError("User authentication not found.");
           return;
         }
 
-        const response = await fetch(
-          `${API_URL}/api/subscriptions/${id}`
-        );
-
+        const response = await fetch(`${API_URL}/api/subscriptions/${id}`);
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(
-            data.message || "Failed to load subscription."
-          );
+          throw new Error(data.message || "Failed to load subscription.");
         }
 
-        // Make sure this subscription belongs to
-        // the currently logged-in customer
-        if (data.userId !== customerUser.id) {
+        if (!isAdmin && data.userId !== customerUser?.id) {
           setError("You are not authorized to access this subscription.");
           return;
         }
@@ -51,21 +52,18 @@ function CancelSubscription() {
         setSubscription(data);
       } catch (err) {
         console.error(err);
-
-        setError(
-          err.message || "Unable to connect to the backend."
-        );
+        setError(err.message || "Unable to connect to the backend.");
       } finally {
         setLoading(false);
       }
     };
 
     fetchSubscription();
-  }, [id]);
+  }, [id, isAdmin, customerUser?.id]);
 
   const handleCancel = async () => {
     const confirmed = window.confirm(
-      "Are you sure you want to cancel your subscription?"
+      "Are you sure you want to cancel this subscription? This will stop recurring renewals."
     );
 
     if (!confirmed) {
@@ -89,169 +87,110 @@ function CancelSubscription() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.message || "Failed to cancel subscription."
-        );
+        throw new Error(data.message || "Failed to cancel subscription.");
       }
 
-      alert("Subscription cancelled successfully!");
-
-      navigate("/customer/subscription");
+      if (isAdmin) {
+        navigate(`/subscriptions/${id}`);
+      } else {
+        navigate("/customer/subscription");
+      }
     } catch (err) {
       console.error(err);
-
-      setError(
-        err.message || "Unable to connect to the backend."
-      );
+      setError(err.message || "Unable to cancel subscription.");
     } finally {
       setCancelling(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <header className="flex items-center justify-between border-b bg-white px-8 py-4">
-          <h1 className="text-xl font-bold text-gray-900">
-            Cancel Subscription
-          </h1>
-
-          <CustomerLogoutButton />
-        </header>
-
-        <main className="p-8">
-          <p className="text-sm text-gray-500">
-            Loading subscription...
-          </p>
-        </main>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="relative min-h-screen bg-[#060913] text-slate-100 overflow-x-hidden">
+      <AmbientBackground />
+      {isAdmin ? (
+        <>
+          <Sidebar />
+          <Topbar />
+        </>
+      ) : (
+        <CustomerNavbar />
+      )}
 
-      {/* Header */}
-      <header className="flex items-center justify-between border-b bg-white px-8 py-4">
-
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Cancel Subscription
-          </h1>
-
-          <p className="mt-1 text-sm text-gray-500">
-            Manage your subscription
-          </p>
-        </div>
-
-        <CustomerLogoutButton />
-
-      </header>
-
-      <main className="p-8">
-
-        <div className="mb-6">
-          <BackButton />
-        </div>
-
-        {error && (
-          <div className="mb-6 max-w-2xl rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-            {error}
+      <main className={`${isAdmin ? "lg:ml-64 pt-20" : "pt-24"} pb-12 px-4 sm:px-8 relative z-10`}>
+        <div className="max-w-2xl mx-auto">
+          {/* Header */}
+          <div className="mb-8 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <BackButton to={isAdmin ? `/subscriptions/${id}` : "/customer/subscription"} />
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
+                  Cancel Subscription #{id}
+                </h1>
+                <p className="mt-1 text-sm text-slate-400">
+                  Deactivate recurring entitlement and cycle renewals
+                </p>
+              </div>
+            </div>
           </div>
-        )}
 
-        {subscription && !error && (
-          <div className="max-w-2xl rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
+          {error && <ErrorBanner message={error} />}
 
-            {/* Warning */}
-            <div className="rounded-lg border border-red-200 bg-red-50 p-6">
-
-              <h2 className="text-lg font-semibold text-red-700">
-                Cancel Your Subscription
-              </h2>
-
-              <p className="mt-2 text-sm text-red-600">
-                Are you sure you want to cancel your current
-                subscription? Your subscription will be marked
-                as cancelled and will remain in the system for
-                billing history.
-              </p>
-
-            </div>
-
-            {/* Subscription Details */}
-            <div className="mt-6 space-y-5">
-
-              <div>
-                <p className="text-xs font-semibold uppercase text-gray-500">
-                  Current Plan
-                </p>
-
-                <p className="mt-1 text-lg font-semibold text-gray-900">
-                  {subscription.plan?.name || "Plan"}
-                </p>
-
-                <p className="text-sm text-gray-500">
-                  ₹
-                  {Number(
-                    subscription.plan?.price || 0
-                  ).toFixed(2)}
-                  {" / "}
-                  {subscription.plan?.billingCycle || ""}
-                </p>
+          {loading ? (
+            <GlassCard className="p-12">
+              <LoadingSpinner text="Retrieving subscription status..." />
+            </GlassCard>
+          ) : !subscription ? (
+            <GlassCard className="p-8 text-center text-slate-400">
+              Subscription record not available.
+            </GlassCard>
+          ) : (
+            <GlassCard className="p-8 sm:p-10 border-rose-500/20">
+              <div className="flex items-center gap-4 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 mb-6">
+                <IconAlertCircle className="w-6 h-6 text-rose-400 shrink-0" />
+                <div className="text-xs">
+                  <p className="font-semibold text-white">Cancellation Notice</p>
+                  <p className="mt-0.5 text-rose-300/90">
+                    Cancelling will immediately terminate the active billing cycle. Entitlements associated with the {subscription.plan?.name} tier will cease.
+                  </p>
+                </div>
               </div>
 
-              <div>
-                <p className="text-xs font-semibold uppercase text-gray-500">
-                  Subscription ID
-                </p>
-
-                <p className="mt-1 text-lg font-semibold text-gray-900">
-                  #{subscription.id}
-                </p>
+              {/* Subscription Summary */}
+              <div className="space-y-4 mb-8 text-xs">
+                <div className="flex justify-between py-2 border-b border-white/5">
+                  <span className="text-slate-400">Customer Account</span>
+                  <span className="font-semibold text-white">{subscription.user?.name || `Customer #${subscription.userId}`}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-white/5">
+                  <span className="text-slate-400">Current Plan Tier</span>
+                  <span className="font-semibold text-white">{subscription.plan?.name} (₹{subscription.plan?.price}/{subscription.plan?.billingCycle?.toLowerCase()})</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-white/5">
+                  <span className="text-slate-400">Current Status</span>
+                  <span className="font-semibold text-amber-300">{subscription.status}</span>
+                </div>
               </div>
 
-              <div>
-                <p className="text-xs font-semibold uppercase text-gray-500">
-                  Current Status
-                </p>
-
-                <span className="mt-2 inline-block rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-700">
-                  {subscription.status}
-                </span>
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => navigate(isAdmin ? `/subscriptions/${id}` : "/customer/subscription")}
+                  className="btn-secondary px-5 py-2.5 rounded-xl text-xs font-semibold"
+                >
+                  Keep Subscription
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  disabled={cancelling || subscription.status === "CANCELLED"}
+                  className="px-6 py-2.5 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white transition shadow-lg shadow-rose-950/50 cursor-pointer disabled:opacity-50"
+                >
+                  {cancelling ? "Processing..." : "Confirm Cancellation"}
+                </button>
               </div>
-
-            </div>
-
-            {/* Actions */}
-            <div className="mt-8 flex justify-end gap-3 border-t border-gray-200 pt-6">
-
-              <button
-                type="button"
-                onClick={() =>
-                  navigate("/customer/subscription")
-                }
-                className="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                Keep Subscription
-              </button>
-
-              <button
-                type="button"
-                onClick={handleCancel}
-                disabled={cancelling}
-                className="rounded-lg bg-red-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {cancelling
-                  ? "Cancelling..."
-                  : "Yes, Cancel Subscription"}
-              </button>
-
-            </div>
-
-          </div>
-        )}
-
+            </GlassCard>
+          )}
+        </div>
       </main>
     </div>
   );

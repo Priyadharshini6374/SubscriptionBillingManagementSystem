@@ -5,6 +5,8 @@ import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import BackButton from "../components/BackButton";
 import API_URL from "../api";
+import { AmbientBackground, GlassCard, LoadingSpinner, ErrorBanner } from "../components/UI";
+import { IconInvoices, IconPlus } from "../components/Icons";
 
 function CreateInvoice() {
   const navigate = useNavigate();
@@ -32,41 +34,27 @@ function CreateInvoice() {
       setLoading(true);
       setError("");
 
-      const [customersResponse, subscriptionsResponse] =
-        await Promise.all([
-          fetch(`${API_URL}/api/customers`),
-          fetch(`${API_URL}/api/subscriptions`),
-        ]);
+      const [customersResponse, subscriptionsResponse] = await Promise.all([
+        fetch(`${API_URL}/api/customers`),
+        fetch(`${API_URL}/api/subscriptions`),
+      ]);
 
-      const customersData =
-        await customersResponse.json();
-
-      const subscriptionsData =
-        await subscriptionsResponse.json();
+      const customersData = await customersResponse.json();
+      const subscriptionsData = await subscriptionsResponse.json();
 
       if (!customersResponse.ok) {
-        throw new Error(
-          customersData.message ||
-            "Failed to load customers."
-        );
+        throw new Error(customersData.message || "Failed to load customers.");
       }
 
       if (!subscriptionsResponse.ok) {
-        throw new Error(
-          subscriptionsData.message ||
-            "Failed to load subscriptions."
-        );
+        throw new Error(subscriptionsData.message || "Failed to load subscriptions.");
       }
 
-      setCustomers(customersData);
-      setSubscriptions(subscriptionsData);
+      setCustomers(Array.isArray(customersData) ? customersData : []);
+      setSubscriptions(Array.isArray(subscriptionsData) ? subscriptionsData : []);
     } catch (err) {
       console.error(err);
-
-      setError(
-        err.message ||
-          "Unable to load invoice data."
-      );
+      setError(err.message || "Unable to load invoice dependency data.");
     } finally {
       setLoading(false);
     }
@@ -80,7 +68,6 @@ function CreateInvoice() {
       [name]: value,
     }));
 
-    // When customer changes, clear subscription
     if (name === "userId") {
       setFormData((previous) => ({
         ...previous,
@@ -91,48 +78,30 @@ function CreateInvoice() {
     }
   };
 
-  const customerSubscriptions =
-    subscriptions.filter(
-      (subscription) =>
-        String(subscription.userId) ===
-          formData.userId &&
-        (
-          subscription.status === "ACTIVE" ||
-          subscription.status === "TRIAL"
-        )
-    );
-
-  const selectedSubscription =
-    subscriptions.find(
-      (subscription) =>
-        String(subscription.id) ===
-        formData.subscriptionId
-    );
+  const customerSubscriptions = subscriptions.filter(
+    (subscription) =>
+      String(subscription.userId) === formData.userId &&
+      (subscription.status === "ACTIVE" || subscription.status === "TRIAL")
+  );
 
   const handleSubscriptionChange = (e) => {
     const subscriptionId = e.target.value;
-
     const subscription = subscriptions.find(
-      (item) =>
-        String(item.id) === subscriptionId
+      (item) => String(item.id) === subscriptionId
     );
 
     setFormData((previous) => ({
       ...previous,
       subscriptionId,
-      amount: subscription
-        ? subscription.plan.price.toString()
-        : "",
+      amount: subscription?.plan?.price ? subscription.plan.price.toString() : "",
     }));
   };
 
   const totalAmount =
-    Number(formData.amount || 0) +
-    Number(formData.tax || 0);
+    Number(formData.amount || 0) + Number(formData.tax || 0);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     setError("");
 
     if (!formData.userId) {
@@ -148,267 +117,192 @@ function CreateInvoice() {
     try {
       setSaving(true);
 
-      const response = await fetch(
-        `${API_URL}/api/invoices`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            userId: Number(formData.userId),
-            subscriptionId: formData.subscriptionId
-              ? Number(formData.subscriptionId)
-              : null,
-            amount: Number(formData.amount),
-            tax: Number(formData.tax || 0),
-          }),
-        }
-      );
+      const response = await fetch(`${API_URL}/api/invoices`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: Number(formData.userId),
+          subscriptionId: formData.subscriptionId
+            ? Number(formData.subscriptionId)
+            : null,
+          amount: Number(formData.amount),
+          tax: Number(formData.tax || 0),
+        }),
+      });
 
       const data = await response.json();
 
       if (!response.ok) {
-        setError(
-          data.message ||
-            "Failed to create invoice."
-        );
+        setError(data.message || "Failed to create invoice.");
         return;
       }
-
-      alert("Invoice created successfully!");
 
       navigate("/invoices");
     } catch (err) {
       console.error(err);
-
-      setError(
-        "Unable to connect to the backend."
-      );
+      setError("Unable to connect to the backend.");
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="relative min-h-screen bg-[#060913] text-slate-100 overflow-x-hidden">
+      <AmbientBackground />
       <Sidebar />
       <Topbar />
 
-      <main className="ml-64 pt-20">
-        <div className="px-8 py-6">
-
-          <div className="mb-6 flex items-center gap-4">
-            <BackButton />
-
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Create Invoice
-              </h1>
-
-              <p className="mt-1 text-sm text-gray-500">
-                Generate a billing invoice for a customer
-              </p>
+      <main className="lg:ml-64 pt-20 pb-12 px-4 sm:px-8 relative z-10">
+        <div className="max-w-2xl mx-auto">
+          {/* Header */}
+          <div className="mb-8 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <BackButton to="/invoices" />
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
+                  <IconInvoices className="w-6 h-6 text-sky-400" />
+                  Generate Invoice
+                </h1>
+                <p className="mt-1 text-sm text-slate-400">
+                  Create a manual or recurring settlement billing document
+                </p>
+              </div>
             </div>
           </div>
 
-          {loading && (
-            <div className="max-w-2xl rounded-xl border border-gray-200 bg-white p-8 text-center shadow-sm">
-              <p className="text-sm text-gray-500">
-                Loading customers and subscriptions...
-              </p>
-            </div>
-          )}
+          {error && <ErrorBanner message={error} />}
 
-          {!loading && error && (
-            <div className="mb-6 max-w-2xl rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-              {error}
-            </div>
-          )}
-
-          {!loading && (
-            <div className="max-w-2xl rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
-
-              <form onSubmit={handleSubmit}>
-
-                {/* Customer */}
-                <div className="mb-6">
-
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Customer *
+          {loading ? (
+            <GlassCard className="p-12">
+              <LoadingSpinner text="Retrieving customer & subscription context..." />
+            </GlassCard>
+          ) : (
+            <GlassCard className="p-8 sm:p-10 border-white/10">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Select Customer */}
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+                    Customer Account <span className="text-rose-400">*</span>
                   </label>
-
                   <select
                     name="userId"
                     value={formData.userId}
                     onChange={handleChange}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm outline-none focus:border-gray-500"
+                    className="w-full glass-input rounded-xl px-4 py-3 text-sm cursor-pointer"
+                    required
                   >
-                    <option value="">
-                      Select a customer
-                    </option>
-
-                    {customers.map((customer) => (
-                      <option
-                        key={customer.id}
-                        value={customer.id}
-                      >
-                        {customer.name} — {customer.email}
+                    <option value="" className="bg-slate-900 text-white">Choose a customer account...</option>
+                    {customers.map((c) => (
+                      <option key={c.id} value={c.id} className="bg-slate-900 text-white">
+                        {c.name} ({c.email})
                       </option>
                     ))}
                   </select>
-
                 </div>
 
-                {/* Subscription */}
-                <div className="mb-6">
-
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Subscription
+                {/* Select Active Subscription */}
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+                    Link Subscription (Optional)
                   </label>
-
                   <select
                     name="subscriptionId"
                     value={formData.subscriptionId}
                     onChange={handleSubscriptionChange}
+                    className="w-full glass-input rounded-xl px-4 py-3 text-sm cursor-pointer"
                     disabled={!formData.userId}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm outline-none disabled:bg-gray-100"
                   >
-                    <option value="">
-                      Select a subscription
+                    <option value="" className="bg-slate-900 text-white">
+                      {!formData.userId
+                        ? "Select a customer first"
+                        : customerSubscriptions.length === 0
+                        ? "No active subscriptions for this customer"
+                        : "Select subscription plan..."}
                     </option>
-
-                    {customerSubscriptions.map(
-                      (subscription) => (
-                        <option
-                          key={subscription.id}
-                          value={subscription.id}
-                        >
-                          #{subscription.id} —{" "}
-                          {subscription.plan.name}
-                        </option>
-                      )
-                    )}
+                    {customerSubscriptions.map((sub) => (
+                      <option key={sub.id} value={sub.id} className="bg-slate-900 text-white">
+                        Sub #{sub.id} - {sub.plan?.name} (₹{sub.plan?.price})
+                      </option>
+                    ))}
                   </select>
-
-                  {formData.userId &&
-                    customerSubscriptions.length === 0 && (
-                      <p className="mt-2 text-xs text-gray-500">
-                        This customer has no active subscription.
-                      </p>
-                    )}
-
                 </div>
 
-                {/* Selected subscription */}
-                {selectedSubscription && (
-                  <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-5">
-
-                    <p className="text-xs font-semibold uppercase text-gray-500">
-                      Subscription
-                    </p>
-
-                    <p className="mt-2 text-sm font-semibold text-gray-900">
-                      {selectedSubscription.plan.name}
-                    </p>
-
-                    <p className="mt-1 text-sm text-gray-500">
-                      ₹
-                      {selectedSubscription.plan.price.toString()}{" "}
-                      /{" "}
-                      {selectedSubscription.plan.billingCycle.toLowerCase()}
-                    </p>
-
-                  </div>
-                )}
-
-                {/* Amount */}
-                <div className="mb-6">
-
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Amount *
-                  </label>
-
-                  <input
-                    type="number"
-                    name="amount"
-                    value={formData.amount}
-                    onChange={handleChange}
-                    min="0"
-                    step="0.01"
-                    placeholder="Enter invoice amount"
-                    className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none focus:border-gray-500"
-                  />
-
-                </div>
-
-                {/* Tax */}
-                <div className="mb-6">
-
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Tax
-                  </label>
-
-                  <input
-                    type="number"
-                    name="tax"
-                    value={formData.tax}
-                    onChange={handleChange}
-                    min="0"
-                    step="0.01"
-                    placeholder="Enter tax amount"
-                    className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none focus:border-gray-500"
-                  />
-
-                </div>
-
-                {/* Total */}
-                <div className="mb-8 rounded-lg border border-gray-200 bg-gray-50 p-5">
-
-                  <div className="flex items-center justify-between">
-
-                    <span className="text-sm font-medium text-gray-600">
-                      Total Amount
-                    </span>
-
-                    <span className="text-xl font-bold text-gray-900">
-                      ₹{totalAmount.toFixed(2)}
-                    </span>
-
+                {/* Amount & Tax in 2 columns */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+                      Base Amount (INR ₹) <span className="text-rose-400">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      name="amount"
+                      value={formData.amount}
+                      onChange={handleChange}
+                      placeholder="0.00"
+                      min="0"
+                      step="any"
+                      className="w-full glass-input rounded-xl px-4 py-3 text-sm placeholder-slate-500"
+                      required
+                    />
                   </div>
 
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+                      Tax (INR ₹)
+                    </label>
+                    <input
+                      type="number"
+                      name="tax"
+                      value={formData.tax}
+                      onChange={handleChange}
+                      placeholder="0.00"
+                      min="0"
+                      step="any"
+                      className="w-full glass-input rounded-xl px-4 py-3 text-sm placeholder-slate-500"
+                    />
+                  </div>
                 </div>
 
-                {/* Buttons */}
-                <div className="flex justify-end gap-3 border-t border-gray-200 pt-6">
+                {/* Total Computed Preview */}
+                <div className="p-4 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-between">
+                  <span className="text-xs font-medium text-slate-300">Total Invoice Charge:</span>
+                  <span className="text-xl font-bold text-sky-400">
+                    ₹{totalAmount.toLocaleString("en-IN")}
+                  </span>
+                </div>
 
+                {/* Action Buttons */}
+                <div className="pt-6 border-t border-white/10 flex items-center justify-end gap-3">
                   <button
                     type="button"
-                    onClick={() =>
-                      navigate("/invoices")
-                    }
-                    className="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    onClick={() => navigate("/invoices")}
+                    className="btn-secondary px-5 py-2.5 rounded-xl text-xs font-semibold"
                   >
                     Cancel
                   </button>
-
                   <button
                     type="submit"
                     disabled={saving}
-                    className="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="btn-primary px-6 py-2.5 rounded-xl text-xs font-semibold inline-flex items-center gap-2 cursor-pointer disabled:opacity-50"
                   >
-                    {saving
-                      ? "Creating..."
-                      : "Create Invoice"}
+                    {saving ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span>Generating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <IconPlus className="w-4 h-4" />
+                        <span>Issue Invoice</span>
+                      </>
+                    )}
                   </button>
-
                 </div>
-
               </form>
-
-            </div>
+            </GlassCard>
           )}
-
         </div>
       </main>
     </div>

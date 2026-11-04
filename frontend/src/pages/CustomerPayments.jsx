@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+import CustomerNavbar from "../components/CustomerNavbar";
 import BackButton from "../components/BackButton";
-import CustomerLogoutButton from "../components/CustomerLogoutButton";
 import API_URL from "../api";
+import { AmbientBackground, GlassBadge, GlassCard, LoadingSpinner, ErrorBanner, EmptyState } from "../components/UI";
+import { IconPayments, IconEye } from "../components/Icons";
 
 function CustomerPayments() {
   const navigate = useNavigate();
@@ -20,7 +22,7 @@ function CustomerPayments() {
     const fetchPayments = async () => {
       try {
         if (!customerUser?.id) {
-          setError("Customer information not found.");
+          setError("Customer authentication not found.");
           setLoading(false);
           return;
         }
@@ -32,18 +34,13 @@ function CustomerPayments() {
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(
-            data.message || "Failed to load payments."
-          );
+          throw new Error(data.message || "Failed to load payments.");
         }
 
-        setPayments(data);
+        setPayments(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error("Payment error:", err);
-
-        setError(
-          err.message || "Failed to load payments."
-        );
+        setError(err.message || "Failed to load payment history.");
       } finally {
         setLoading(false);
       }
@@ -52,218 +49,99 @@ function CustomerPayments() {
     fetchPayments();
   }, [customerUser?.id]);
 
-  const getStatusClass = (status) => {
-    if (status === "SUCCESS") {
-      return "bg-green-100 text-green-700";
-    }
-
-    if (status === "FAILED") {
-      return "bg-red-100 text-red-700";
-    }
-
-    if (status === "REFUNDED") {
-      return "bg-purple-100 text-purple-700";
-    }
-
-    return "bg-yellow-100 text-yellow-700";
-  };
-
-  const formatDate = (date) => {
-    if (!date) return "—";
-
-    return new Date(date).toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-8">
-        <p className="text-gray-600">
-          Loading payments...
-        </p>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="relative min-h-screen bg-[#060913] text-slate-100 overflow-x-hidden">
+      <AmbientBackground />
+      <CustomerNavbar />
 
-      <header className="flex items-center justify-between border-b bg-white px-8 py-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            My Payments
-          </h1>
-
-          <p className="mt-1 text-sm text-gray-500">
-            View your payment transactions
-          </p>
-        </div>
-
-        <CustomerLogoutButton />
-      </header>
-
-      <main className="p-8">
-
-        <div className="mb-6">
-          <BackButton />
-        </div>
-
-        {error && (
-          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-600">
-            {error}
-          </div>
-        )}
-
-        {!error && payments.length === 0 && (
-          <div className="rounded-xl border border-gray-200 bg-white p-12 text-center shadow-sm">
-
-            <div className="mb-4 text-5xl">
-              💳
+      <main className="max-w-7xl mx-auto pt-28 pb-16 px-4 sm:px-8 relative z-10">
+        {/* Header */}
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <BackButton to="/customer/dashboard" />
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
+                <IconPayments className="w-6 h-6 text-emerald-400" />
+                Payment History
+              </h1>
+              <p className="mt-1 text-sm text-slate-400">
+                Audit records of completed billing transactions and receipts
+              </p>
             </div>
-
-            <h2 className="text-lg font-semibold text-gray-800">
-              No Payments Found
-            </h2>
-
-            <p className="mt-2 text-sm text-gray-500">
-              You currently do not have any payment transactions.
-            </p>
-
           </div>
-        )}
+        </div>
 
-        {!error && payments.length > 0 && (
-          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+        {error && <ErrorBanner message={error} />}
 
+        {loading ? (
+          <GlassCard className="p-12">
+            <LoadingSpinner text="Retrieving transaction records..." />
+          </GlassCard>
+        ) : payments.length === 0 ? (
+          <EmptyState
+            icon={IconPayments}
+            title="No payment records found"
+            description="Your settled invoices and transaction confirmations will be cataloged here."
+          />
+        ) : (
+          <GlassCard className="overflow-hidden border-white/10">
             <div className="overflow-x-auto">
-
-              <table className="w-full">
-
-                <thead className="border-b border-gray-200 bg-gray-50">
-
+              <table className="w-full text-left text-xs">
+                <thead className="border-b border-white/10 bg-white/[0.02] text-slate-400 uppercase tracking-wider font-semibold">
                   <tr>
-
-                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase text-gray-500">
-                      Transaction
-                    </th>
-
-                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase text-gray-500">
-                      Invoice
-                    </th>
-
-                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase text-gray-500">
-                      Amount
-                    </th>
-
-                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase text-gray-500">
-                      Method
-                    </th>
-
-                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase text-gray-500">
-                      Status
-                    </th>
-
-                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase text-gray-500">
-                      Date
-                    </th>
-
-                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase text-gray-500">
-                      Action
-                    </th>
-
+                    <th className="px-6 py-4">Transaction #</th>
+                    <th className="px-6 py-4">Method</th>
+                    <th className="px-6 py-4">Status</th>
+                    <th className="px-6 py-4 text-right">Amount</th>
+                    <th className="px-6 py-4">Date</th>
+                    <th className="px-6 py-4 text-right">Receipt</th>
                   </tr>
-
                 </thead>
-
-                <tbody className="divide-y divide-gray-100">
-
+                <tbody className="divide-y divide-white/5">
                   {payments.map((payment) => (
-
-                    <tr
-                      key={payment.id}
-                      className="hover:bg-gray-50"
-                    >
-
-                      <td className="px-6 py-4">
-                        <p className="text-sm font-semibold text-gray-800">
-                          {payment.transactionId || "—"}
-                        </p>
+                    <tr key={payment.id} className="hover:bg-white/[0.03] transition-colors">
+                      <td className="px-6 py-4 font-mono font-bold text-slate-300">
+                        {payment.transactionId}
                       </td>
 
                       <td className="px-6 py-4">
-                        <p className="text-sm text-gray-700">
-                          {payment.invoice?.invoiceNumber || "—"}
-                        </p>
-                      </td>
-
-                      <td className="px-6 py-4">
-                        <p className="text-sm font-semibold text-gray-800">
-                          ₹{Number(payment.amount || 0).toFixed(2)}
-                        </p>
-                      </td>
-
-                      <td className="px-6 py-4">
-                        <span className="text-sm text-gray-700">
-                          {payment.paymentMethod
-                            ? payment.paymentMethod.replace(
-                                "_",
-                                " "
-                              )
-                            : "—"}
+                        <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-white/[0.05] border border-white/10 text-slate-300">
+                          {payment.paymentMethod || "UPI"}
                         </span>
                       </td>
 
                       <td className="px-6 py-4">
-
-                        <span
-                          className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusClass(
-                            payment.status
-                          )}`}
-                        >
-                          {payment.status || "—"}
-                        </span>
-
+                        <GlassBadge status={payment.status} />
                       </td>
 
-                      <td className="px-6 py-4">
-
-                        <p className="text-sm text-gray-600">
-                          {formatDate(payment.paymentDate)}
-                        </p>
-
+                      <td className="px-6 py-4 text-right font-bold text-emerald-400 text-sm">
+                        ₹{Number(payment.amount).toLocaleString("en-IN")}
                       </td>
 
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 text-slate-400">
+                        {new Date(payment.paymentDate).toLocaleDateString("en-IN", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </td>
 
+                      <td className="px-6 py-4 text-right">
                         <button
-                          onClick={() =>
-                            navigate(
-                              `/customer/payments/${payment.id}`
-                            )
-                          }
-                          className="rounded-lg bg-gray-900 px-4 py-2 text-xs font-medium text-white hover:bg-gray-800"
+                          onClick={() => navigate(`/customer/payments/${payment.id}`)}
+                          className="btn-secondary px-3 py-1.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
                         >
-                          View
+                          <IconEye className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>View</span>
                         </button>
-
                       </td>
-
                     </tr>
-
                   ))}
-
                 </tbody>
-
               </table>
-
             </div>
-
-          </div>
+          </GlassCard>
         )}
-
       </main>
     </div>
   );

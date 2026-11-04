@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import CustomerNavbar from "../components/CustomerNavbar";
 import BackButton from "../components/BackButton";
-import CustomerLogoutButton from "../components/CustomerLogoutButton";
 import API_URL from "../api";
+import { AmbientBackground, GlassCard, LoadingSpinner, ErrorBanner } from "../components/UI";
+import { IconPlans, IconCheck } from "../components/Icons";
 
 function CustomerSubscribe() {
   const navigate = useNavigate();
@@ -16,25 +18,20 @@ function CustomerSubscribe() {
   useEffect(() => {
     const fetchPlan = async () => {
       try {
-        const response = await fetch(
-          `${API_URL}/api/plans/${id}`
-        );
+        setLoading(true);
+        setError("");
 
+        const response = await fetch(`${API_URL}/api/plans/${id}`);
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(
-            data.message || "Failed to fetch plan"
-          );
+          throw new Error(data.message || "Failed to fetch plan details");
         }
 
         setPlan(data);
-      } catch (error) {
-        console.error("Plan error:", error);
-
-        setError(
-          error.message || "Unable to load plan"
-        );
+      } catch (err) {
+        console.error("Plan error:", err);
+        setError(err.message || "Unable to load plan specifications.");
       } finally {
         setLoading(false);
       }
@@ -48,9 +45,7 @@ function CustomerSubscribe() {
       setError("");
       setSubscribing(true);
 
-      const storedUser = localStorage.getItem(
-        "customerUser"
-      );
+      const storedUser = localStorage.getItem("customerUser");
 
       if (!storedUser) {
         navigate("/customer/login");
@@ -59,321 +54,135 @@ function CustomerSubscribe() {
 
       const customer = JSON.parse(storedUser);
 
-      const response = await fetch(
-        `${API_URL}/api/subscriptions`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            userId: customer.id,
-            planId: plan.id,
-          }),
-        }
-      );
+      const response = await fetch(`${API_URL}/api/subscriptions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: customer.id,
+          planId: plan.id,
+        }),
+      });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.message || "Subscription failed"
-        );
+        throw new Error(data.message || "Subscription activation failed");
       }
 
-      alert(
-        "Subscription created successfully!"
-      );
-
       navigate("/customer/subscription");
-    } catch (error) {
-      console.error(
-        "Subscription error:",
-        error
-      );
-
-      setError(
-        error.message ||
-          "Unable to create subscription"
-      );
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "Could not complete subscription.");
     } finally {
       setSubscribing(false);
     }
   };
 
-  const formatBillingCycle = (cycle) => {
-    if (cycle === "MONTHLY") return "month";
-    if (cycle === "QUARTERLY") return "3 months";
-    if (cycle === "YEARLY") return "year";
-
-    return cycle?.toLowerCase() || "";
-  };
-
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <p className="text-sm text-gray-500">
-          Loading plan...
-        </p>
-      </div>
-    );
-  }
-
-  if (error && !plan) {
-    return (
-      <div className="min-h-screen bg-gray-50 px-8 pb-10 pt-24">
-        <BackButton />
-
-        <div className="mx-auto mt-8 max-w-xl rounded-xl border border-red-200 bg-red-50 p-6">
-          <p className="text-sm font-medium text-red-600">
-            {error}
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="relative min-h-screen bg-[#060913] text-slate-100 overflow-x-hidden">
+      <AmbientBackground />
+      <CustomerNavbar />
 
-      {/* ==================== TOPBAR ==================== */}
-
-      <header className="fixed left-0 right-0 top-0 z-10 h-16 border-b border-gray-200 bg-white">
-
-        <div className="flex h-full items-center justify-between px-8">
-
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">
-              SubBill
-            </h1>
-
-            <p className="text-xs text-gray-500">
-              Customer Portal
-            </p>
-          </div>
-
-          <CustomerLogoutButton />
-
-        </div>
-
-      </header>
-
-
-      {/* ==================== MAIN CONTENT ==================== */}
-
-      <main className="px-8 pb-10 pt-24">
-
-        <BackButton />
-
-        <div className="mx-auto mt-8 max-w-3xl">
-
-          <div className="mb-8">
-
-            <h2 className="text-3xl font-bold text-gray-900">
-              Subscribe to {plan.name}
-            </h2>
-
-            <p className="mt-2 text-gray-500">
-              Review your plan details before subscribing.
-            </p>
-
-          </div>
-
-
-          {/* Error */}
-
-          {error && (
-            <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
-              <p className="text-sm font-medium text-red-600">
-                {error}
+      <main className="max-w-2xl mx-auto pt-28 pb-16 px-4 sm:px-8 relative z-10">
+        <div className="mb-8 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <BackButton to="/customer/plans" />
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
+                <IconPlans className="w-6 h-6 text-indigo-400" />
+                Confirm Subscription
+              </h1>
+              <p className="mt-1 text-sm text-slate-400">
+                Review tier terms and initiate recurring membership
               </p>
             </div>
-          )}
+          </div>
+        </div>
 
+        {error && <ErrorBanner message={error} />}
 
-          {/* Plan Summary */}
-
-          <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
-
-            <div className="flex flex-col justify-between gap-6 md:flex-row">
-
+        {loading ? (
+          <GlassCard className="p-12">
+            <LoadingSpinner text="Retrieving package details..." />
+          </GlassCard>
+        ) : !plan ? (
+          <GlassCard className="p-8 text-center text-slate-400">
+            Selected plan not found.
+          </GlassCard>
+        ) : (
+          <GlassCard className="p-8 sm:p-10 border-white/10 space-y-6">
+            {/* Plan Tier Highlight */}
+            <div className="flex items-center justify-between pb-6 border-b border-white/10">
               <div>
-
-                <h3 className="text-2xl font-bold text-gray-900">
-                  {plan.name}
-                </h3>
-
-                <p className="mt-2 text-sm text-gray-500">
-                  {plan.description ||
-                    "Subscription plan"}
-                </p>
-
+                <span className="text-xs font-semibold uppercase tracking-wider text-indigo-400">
+                  Target Plan
+                </span>
+                <h3 className="text-2xl font-bold text-white mt-1">{plan.name}</h3>
+                <p className="text-xs text-slate-400 mt-0.5">{plan.description}</p>
               </div>
-
-
-              <div className="md:text-right">
-
-                <p className="text-3xl font-bold text-gray-900">
-                  ₹
-                  {Number(plan.price).toLocaleString(
-                    "en-IN"
-                  )}
-                </p>
-
-                <p className="text-sm text-gray-500">
-                  per{" "}
-                  {formatBillingCycle(
-                    plan.billingCycle
-                  )}
-                </p>
-
+              <div className="text-right">
+                <span className="text-3xl font-black text-white">₹{plan.price}</span>
+                <span className="text-xs text-slate-400 block capitalize">
+                  Per {plan.billingCycle?.toLowerCase()}
+                </span>
               </div>
-
             </div>
 
-
-            {/* Trial */}
-
+            {/* Trial Notice */}
             {plan.trialPeriod > 0 && (
-
-              <div className="mt-6 rounded-lg bg-gray-50 p-4">
-
-                <p className="text-sm font-semibold text-gray-800">
-                  Free Trial
-                </p>
-
-                <p className="mt-1 text-sm text-gray-500">
-                  This plan includes a{" "}
-                  {plan.trialPeriod}-day free trial.
-                </p>
-
+              <div className="p-4 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-300 text-xs flex items-center gap-2">
+                <span className="font-semibold text-white">Complimentary Trial Included:</span>
+                <span>You will enjoy {plan.trialPeriod} days of zero-charge access before recurring renewal.</span>
               </div>
-
             )}
 
-
-            {/* Features */}
-
-            <div className="mt-8 border-t border-gray-100 pt-6">
-
-              <h4 className="font-semibold text-gray-900">
-                Plan Features
-              </h4>
-
-              <ul className="mt-4 space-y-3">
-
-                {Array.isArray(plan.features) &&
-                plan.features.length > 0 ? (
-
-                  plan.features.map(
-                    (feature, index) => (
-
-                      <li
-                        key={index}
-                        className="flex items-start gap-3 text-sm text-gray-600"
-                      >
-
-                        <span className="font-semibold text-green-600">
-                          ✓
-                        </span>
-
-                        <span>
-                          {feature}
-                        </span>
-
-                      </li>
-
-                    )
-                  )
-
-                ) : (
-
-                  <li className="text-sm text-gray-500">
-                    Standard features included
-                  </li>
-
-                )}
-
-              </ul>
-
-            </div>
-
-
-            {/* Limits */}
-
-            {(plan.maximumUsers !== null ||
-              plan.storageLimit !== null) && (
-
-              <div className="mt-8 border-t border-gray-100 pt-6">
-
-                <h4 className="font-semibold text-gray-900">
-                  Plan Limits
-                </h4>
-
-                <div className="mt-4 grid gap-4 sm:grid-cols-2">
-
-                  {plan.maximumUsers !== null && (
-                    <div className="rounded-lg bg-gray-50 p-4">
-
-                      <p className="text-xs text-gray-500">
-                        Maximum Users
-                      </p>
-
-                      <p className="mt-1 font-semibold text-gray-900">
-                        {plan.maximumUsers}
-                      </p>
-
+            {/* Feature Entitlements */}
+            {Array.isArray(plan.features) && plan.features.length > 0 && (
+              <div className="space-y-3 py-2">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  Plan Entitlements:
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {plan.features.map((feature, i) => (
+                    <div key={i} className="flex items-center gap-2 text-xs text-slate-300">
+                      <IconCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <span>{feature}</span>
                     </div>
-                  )}
-
-                  {plan.storageLimit !== null && (
-                    <div className="rounded-lg bg-gray-50 p-4">
-
-                      <p className="text-xs text-gray-500">
-                        Storage
-                      </p>
-
-                      <p className="mt-1 font-semibold text-gray-900">
-                        {plan.storageLimit} GB
-                      </p>
-
-                    </div>
-                  )}
-
+                  ))}
                 </div>
-
               </div>
-
             )}
 
-
-            {/* Subscribe */}
-
-            <div className="mt-8 border-t border-gray-100 pt-6">
-
+            {/* Actions */}
+            <div className="pt-6 border-t border-white/10 flex items-center justify-end gap-3">
               <button
+                type="button"
+                onClick={() => navigate("/customer/plans")}
+                className="btn-secondary px-5 py-2.5 rounded-xl text-xs font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
                 onClick={handleSubscribe}
                 disabled={subscribing}
-                className="w-full rounded-lg bg-gray-900 px-5 py-3 font-semibold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
+                className="btn-primary px-6 py-2.5 rounded-xl text-xs font-semibold inline-flex items-center gap-2 cursor-pointer disabled:opacity-50"
               >
-                {subscribing
-                  ? "Creating Subscription..."
-                  : "Confirm Subscription"}
+                {subscribing ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Activating Subscription...</span>
+                  </>
+                ) : (
+                  <span>Confirm & Activate</span>
+                )}
               </button>
-
-              <p className="mt-3 text-center text-xs text-gray-500">
-                This is a simulated subscription and does
-                not process real payments.
-              </p>
-
             </div>
-
-          </div>
-
-        </div>
-
+          </GlassCard>
+        )}
       </main>
-
     </div>
   );
 }

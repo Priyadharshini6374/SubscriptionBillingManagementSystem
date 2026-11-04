@@ -6,12 +6,29 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
 } from "recharts";
 
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import BackButton from "../components/BackButton";
 import API_URL from "../api";
+import { AmbientBackground, GlassCard, LoadingSpinner, ErrorBanner } from "../components/UI";
+import { IconAnalytics, IconTrendingUp, IconPlans, IconSubscriptions, IconPayments } from "../components/Icons";
+
+const PALETTE = [
+  "#6366f1",
+  "#8b5cf6",
+  "#0ea5e9",
+  "#10b981",
+  "#f59e0b",
+  "#ec4899",
+  "#06b6d4",
+];
 
 function Analytics() {
   const [analytics, setAnalytics] = useState(null);
@@ -24,72 +41,25 @@ function Analytics() {
         if (!response.ok) {
           throw new Error("Failed to fetch analytics");
         }
-
         return response.json();
       })
       .then((data) => {
         setAnalytics(data);
         setLoading(false);
       })
-      .catch((error) => {
-        console.error(error);
-        setError("Unable to load analytics data");
+      .catch((err) => {
+        console.error(err);
+        setError("Unable to load analytics telemetry.");
         setLoading(false);
       });
   }, []);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Sidebar />
-        <Topbar />
-
-        <main className="ml-64 pt-16">
-          <div className="p-8">
-            <p className="text-gray-600">Loading analytics...</p>
-          </div>
-        </main>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Sidebar />
-        <Topbar />
-
-        <main className="ml-64 pt-16">
-          <div className="p-8">
-            <BackButton />
-
-            <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-5">
-              <p className="font-medium text-red-700">{error}</p>
-            </div>
-          </div>
-        </main>
-      </div>
-    );
-  }
-
-  /* =========================
-     PLANS SOLD
-  ========================= */
-
   const plansSold = analytics?.plansSold || [];
-
-  const totalPlansSold = plansSold.reduce(
-    (total, item) => total + item.sold,
-    0
-  );
-
+  const totalPlansSold = plansSold.reduce((total, item) => total + item.sold, 0);
   const mostSoldPlan = plansSold.length > 0 ? plansSold[0] : null;
 
   const getPercentage = (sold) => {
-    if (totalPlansSold === 0) {
-      return 0;
-    }
-
+    if (totalPlansSold === 0) return 0;
     return ((sold / totalPlansSold) * 100).toFixed(1);
   };
 
@@ -98,27 +68,11 @@ function Analytics() {
     displayName: item.plan,
   }));
 
-  const chartColors = [
-    "#4F46E5",
-    "#06B6D4",
-    "#10B981",
-    "#F59E0B",
-    "#EF4444",
-    "#8B5CF6",
-  ];
-
-  /* =========================
-     ACTIVE SUBSCRIPTIONS
-  ========================= */
-
-  const activeSubscriptions =
-    analytics?.activeSubscriptions || [];
-
-  const totalActiveSubscriptions =
-    activeSubscriptions.reduce(
-      (total, item) => total + item.active,
-      0
-    );
+  const activeSubscriptions = analytics?.activeSubscriptions || [];
+  const totalActiveSubscriptions = activeSubscriptions.reduce(
+    (total, item) => total + item.active,
+    0
+  );
 
   const activeChartData = activeSubscriptions.map((item) => ({
     ...item,
@@ -126,511 +80,283 @@ function Analytics() {
   }));
 
   const getActivePercentage = (active) => {
-    if (totalActiveSubscriptions === 0) {
-      return 0;
-    }
-
+    if (totalActiveSubscriptions === 0) return 0;
     return ((active / totalActiveSubscriptions) * 100).toFixed(1);
   };
 
+  const monthlyRevenue = analytics?.monthlyRevenue || [];
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="relative min-h-screen bg-[#060913] text-slate-100 overflow-x-hidden">
+      <AmbientBackground />
       <Sidebar />
       <Topbar />
 
-      <main className="ml-64 pt-16">
-        <div className="p-8">
-
-          {/* Page Header */}
-          <div className="mb-6 flex items-center gap-4">
+      <main className="lg:ml-64 pt-20 pb-12 px-4 sm:px-8 relative z-10">
+        {/* Header */}
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-4">
             <BackButton />
-
             <div>
-              <h1 className="text-2xl font-bold text-gray-800">
-                Revenue Analytics
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
+                <IconAnalytics className="w-6 h-6 text-indigo-400" />
+                Revenue & Sales Analytics
               </h1>
-
-              <p className="mt-1 text-sm text-gray-500">
-                Analyze subscription sales and revenue performance
+              <p className="mt-1 text-sm text-slate-400">
+                In-depth subscription volume, plan distribution, and recurring run rate
               </p>
             </div>
           </div>
+        </div>
 
-          {/* =========================
-              PLANS SOLD
-          ========================= */}
+        {error && <ErrorBanner message={error} />}
 
-          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        {loading ? (
+          <GlassCard className="p-12">
+            <LoadingSpinner text="Compiling financial models..." />
+          </GlassCard>
+        ) : (
+          <div className="space-y-8">
+            {/* KPI Summary Tiles */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <GlassCard className="p-5 border-indigo-500/20">
+                <div className="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase mb-2">
+                  <span>Gross Revenue</span>
+                  <IconTrendingUp className="w-4 h-4 text-indigo-400" />
+                </div>
+                <div className="text-2xl font-black text-white">
+                  ₹{Number(analytics?.totalRevenue || 0).toLocaleString("en-IN")}
+                </div>
+                <p className="text-[11px] text-emerald-400 mt-1 font-medium">From successful payments</p>
+              </GlassCard>
 
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold text-gray-800">
-                Plans Sold
-              </h2>
+              <GlassCard className="p-5 border-emerald-500/20">
+                <div className="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase mb-2">
+                  <span>Settlements</span>
+                  <IconPayments className="w-4 h-4 text-emerald-400" />
+                </div>
+                <div className="text-2xl font-black text-white">
+                  {analytics?.successfulPaymentCount || 0}
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">Paid transactions</p>
+              </GlassCard>
 
-              <p className="mt-1 text-sm text-gray-500">
-                Visual representation of subscriptions sold by plan
-              </p>
+              <GlassCard className="p-5 border-purple-500/20">
+                <div className="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase mb-2">
+                  <span>Subscriptions Sold</span>
+                  <IconPlans className="w-4 h-4 text-purple-400" />
+                </div>
+                <div className="text-2xl font-black text-white">
+                  {totalPlansSold}
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">All-time plan activations</p>
+              </GlassCard>
+
+              <GlassCard className="p-5 border-sky-500/20">
+                <div className="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase mb-2">
+                  <span>Active Licenses</span>
+                  <IconSubscriptions className="w-4 h-4 text-sky-400" />
+                </div>
+                <div className="text-2xl font-black text-white">
+                  {totalActiveSubscriptions}
+                </div>
+                <p className="text-[11px] text-sky-400 mt-1 font-medium">Active & trial accounts</p>
+              </GlassCard>
             </div>
 
-            {plansSold.length === 0 ? (
-              <div className="flex h-80 items-center justify-center">
-                <p className="text-gray-500">
-                  No subscription sales available yet.
+            {/* Monthly Trend Area Chart */}
+            {monthlyRevenue.length > 0 && (
+              <GlassCard className="p-6">
+                <div className="mb-6">
+                  <h2 className="text-base font-bold text-white flex items-center gap-2">
+                    <IconTrendingUp className="w-4 h-4 text-indigo-400" />
+                    Monthly Revenue Run Rate
+                  </h2>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Monthly billing revenue accumulation over time
+                  </p>
+                </div>
+                <div className="h-72 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={monthlyRevenue} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="areaGlow" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#6366f1" stopOpacity={0.5} />
+                          <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
+                      <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickLine={false} />
+                      <YAxis
+                        stroke="#94a3b8"
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={(v) => `₹${v}`}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "rgba(15, 23, 42, 0.9)",
+                          backdropFilter: "blur(12px)",
+                          border: "1px solid rgba(255, 255, 255, 0.1)",
+                          borderRadius: "12px",
+                          color: "#fff",
+                        }}
+                        formatter={(value) => [`₹${Number(value).toLocaleString("en-IN")}`, "Revenue"]}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="revenue"
+                        stroke="#818cf8"
+                        strokeWidth={3}
+                        fillOpacity={1}
+                        fill="url(#areaGlow)"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </GlassCard>
+            )}
+
+            {/* Plans Sold Donut & Lead Plan Card */}
+            <GlassCard className="p-6">
+              <div className="mb-6">
+                <h2 className="text-base font-bold text-white flex items-center gap-2">
+                  <IconPlans className="w-4 h-4 text-purple-400" />
+                  Plans Sold Breakdown
+                </h2>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Cumulative distribution of plans subscribed by users
                 </p>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
 
-                {/* 3D Pie Chart */}
-                <div className="lg:col-span-2">
-
-                  <div className="relative h-[450px] w-full">
-
+              {plansSold.length === 0 ? (
+                <div className="p-8 text-center text-xs text-slate-400">
+                  No subscription plan sales recorded yet.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
+                  <div className="lg:col-span-2 relative h-80 w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
-
-                        {/* Bottom shadow / depth layer */}
-                        <Pie
-                          data={chartData}
-                          dataKey="sold"
-                          nameKey="displayName"
-                          legendType="none"
-                          cx="50%"
-                          cy="54%"
-                          outerRadius={155}
-                          innerRadius={72}
-                          startAngle={90}
-                          endAngle={-270}
-                          paddingAngle={3}
-                          stroke="none"
-                        >
-                          {chartData.map((entry, index) => (
-                            <Cell
-                              key={`depth-${index}`}
-                              fill="#CBD5E1"
-                            />
-                          ))}
-                        </Pie>
-
-                        {/* Main chart */}
                         <Pie
                           data={chartData}
                           dataKey="sold"
                           nameKey="displayName"
                           cx="50%"
-                          cy="49%"
-                          outerRadius={155}
-                          innerRadius={72}
-                          startAngle={90}
-                          endAngle={-270}
-                          paddingAngle={3}
-                          stroke="#FFFFFF"
-                          strokeWidth={3}
-                          label={({ displayName, percent }) =>
-                            `${displayName} ${(percent * 100).toFixed(1)}%`
-                          }
-                          labelLine={true}
+                          cy="50%"
+                          outerRadius={110}
+                          innerRadius={65}
+                          paddingAngle={4}
+                          stroke="rgba(15, 23, 42, 0.8)"
+                          strokeWidth={2}
                         >
                           {chartData.map((entry, index) => (
                             <Cell
                               key={`main-${index}`}
-                              fill={
-                                chartColors[index % chartColors.length]
-                              }
+                              fill={PALETTE[index % PALETTE.length]}
                             />
                           ))}
                         </Pie>
-
-                        {/* Highlight ring */}
-                        <Pie
-                          data={chartData}
-                          dataKey="sold"
-                          nameKey="displayName"
-                          legendType="none"
-                          cx="50%"
-                          cy="49%"
-                          outerRadius={160}
-                          innerRadius={155}
-                          startAngle={90}
-                          endAngle={-270}
-                          paddingAngle={3}
-                          stroke="none"
-                        >
-                          {chartData.map((entry, index) => (
-                            <Cell
-                              key={`ring-${index}`}
-                              fill={
-                                chartColors[index % chartColors.length]
-                              }
-                            />
-                          ))}
-                        </Pie>
-
                         <Tooltip
                           contentStyle={{
-                            borderRadius: "12px",
-                            border: "1px solid #E5E7EB",
-                            boxShadow:
-                              "0 10px 25px rgba(0, 0, 0, 0.10)",
+                            backgroundColor: "rgba(15, 23, 42, 0.9)",
+                            borderRadius: "10px",
+                            border: "1px solid rgba(255,255,255,0.1)",
+                            color: "#fff",
                           }}
-                          formatter={(value, name) => [
-                            `${value} subscriptions`,
-                            name,
-                          ]}
+                          formatter={(value, name) => [`${value} subscriptions`, name]}
                         />
-
-                        <Legend
-                          verticalAlign="bottom"
-                          height={40}
-                        />
-
+                        <Legend verticalAlign="bottom" height={36} />
                       </PieChart>
                     </ResponsiveContainer>
 
-                    {/* Center of Donut */}
-                    <div className="pointer-events-none absolute left-1/2 top-[49%] flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center">
-                      <span className="text-xs font-medium uppercase tracking-wider text-gray-400">
+                    {/* Donut Center */}
+                    <div className="pointer-events-none absolute left-1/2 top-[44%] -translate-x-1/2 -translate-y-1/2 text-center">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                         Total Sold
                       </span>
-
-                      <span className="mt-1 text-4xl font-bold text-gray-900">
-                        {totalPlansSold}
-                      </span>
-
-                      <span className="text-xs text-gray-500">
-                        subscriptions
-                      </span>
+                      <p className="text-2xl font-black text-white">{totalPlansSold}</p>
                     </div>
-
-                  </div>
-                </div>
-
-                {/* Most Sold Plan */}
-                <div className="flex items-center">
-
-                  <div className="w-full rounded-2xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-7 shadow-sm">
-
-                    <div className="flex items-center gap-2">
-                      <span className="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
-
-                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                        Most Sold Plan
-                      </p>
-                    </div>
-
-                    {mostSoldPlan && (
-                      <>
-                        <h3 className="mt-4 text-3xl font-bold capitalize text-gray-900">
-                          {mostSoldPlan.plan}
-                        </h3>
-
-                        <p className="mt-2 text-lg font-medium text-gray-700">
-                          {mostSoldPlan.sold} subscriptions
-                        </p>
-
-                        <div className="mt-6 border-t border-gray-200 pt-5">
-
-                          <p className="text-sm text-gray-500">
-                            Share of total subscriptions
-                          </p>
-
-                          <p className="mt-1 text-3xl font-bold text-gray-900">
-                            {getPercentage(mostSoldPlan.sold)}%
-                          </p>
-
-                        </div>
-
-                        <div className="mt-6 rounded-xl bg-gray-100 p-4">
-
-                          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                            Performance
-                          </p>
-
-                          <p className="mt-1 text-sm font-medium text-gray-800">
-                            This plan has the highest number of subscriptions.
-                          </p>
-
-                        </div>
-                      </>
-                    )}
-
                   </div>
 
-                </div>
-
-              </div>
-            )}
-
-          </div>
-
-          {/* =========================
-              PLAN SALES BREAKDOWN
-          ========================= */}
-
-          <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-
-            <div>
-              <h2 className="text-xl font-semibold text-gray-800">
-                Plan Sales Breakdown
-              </h2>
-
-              <p className="mt-1 text-sm text-gray-500">
-                Number of subscriptions sold for each plan
-              </p>
-            </div>
-
-            <div className="mt-6 space-y-6">
-
-              {plansSold.map((item, index) => {
-
-                const percentage = getPercentage(item.sold);
-
-                return (
-                  <div key={item.plan}>
-
-                    <div className="mb-2 flex items-center justify-between">
-
-                      <div className="flex items-center gap-3">
-
-                        <span
-                          className="h-3 w-3 rounded-full"
-                          style={{
-                            backgroundColor:
-                              chartColors[index % chartColors.length],
-                          }}
-                        />
-
-                        <span className="font-medium capitalize text-gray-700">
-                          {item.plan}
+                  {/* Most Sold Highlight */}
+                  {mostSoldPlan && (
+                    <div className="p-6 rounded-2xl bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-transparent border border-indigo-500/20">
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]" />
+                        <span className="text-xs font-semibold uppercase tracking-wider text-indigo-300">
+                          Top Tier Performer
                         </span>
-
                       </div>
+                      <h3 className="text-2xl font-extrabold text-white capitalize">
+                        {mostSoldPlan.plan}
+                      </h3>
+                      <p className="text-sm text-slate-300 mt-1 font-medium">
+                        {mostSoldPlan.sold} subscriptions assigned
+                      </p>
 
-                      <span className="text-sm font-medium text-gray-500">
-                        {item.sold} sold · {percentage}%
-                      </span>
-
+                      <div className="mt-5 pt-4 border-t border-white/10 flex items-baseline justify-between">
+                        <span className="text-xs text-slate-400">Market Share:</span>
+                        <span className="text-2xl font-bold text-white">
+                          {getPercentage(mostSoldPlan.sold)}%
+                        </span>
+                      </div>
                     </div>
+                  )}
+                </div>
+              )}
+            </GlassCard>
 
-                    <div className="h-3 overflow-hidden rounded-full bg-gray-100">
-
-                      <div
-                        className="h-full rounded-full transition-all duration-700"
-                        style={{
-                          width: `${percentage}%`,
-                          backgroundColor:
-                            chartColors[index % chartColors.length],
-                        }}
-                      />
-
-                    </div>
-
-                  </div>
-                );
-
-              })}
-
-            </div>
-
-          </div>
-
-          {/* =========================
-              ACTIVE SUBSCRIPTIONS
-          ========================= */}
-
-          <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold text-gray-800">
-                Current Active Subscriptions
-              </h2>
-
-              <p className="mt-1 text-sm text-gray-500">
-                Current active and trial subscriptions by plan
-              </p>
-            </div>
-
-            {activeSubscriptions.length === 0 ? (
-              <div className="flex h-80 items-center justify-center">
-                <p className="text-gray-500">
-                  No active subscriptions available yet.
+            {/* Active Subscriptions Breakdown with Progress Bars */}
+            <GlassCard className="p-6">
+              <div className="mb-6">
+                <h2 className="text-base font-bold text-white flex items-center gap-2">
+                  <IconSubscriptions className="w-4 h-4 text-sky-400" />
+                  Current Active Plan Allocations
+                </h2>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Proportion of active recurring client engagements by tier
                 </p>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
 
-                {/* Active Subscription Donut */}
-                <div className="lg:col-span-2">
-
-                  <div className="relative h-[420px] w-full">
-
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-
-                        <Pie
-                          data={activeChartData}
-                          dataKey="active"
-                          nameKey="displayName"
-                          cx="50%"
-                          cy="48%"
-                          outerRadius={145}
-                          innerRadius={70}
-                          startAngle={90}
-                          endAngle={-270}
-                          paddingAngle={3}
-                          stroke="#FFFFFF"
-                          strokeWidth={3}
-                          label={({ displayName, percent }) =>
-                            `${displayName} ${(percent * 100).toFixed(1)}%`
-                          }
-                          labelLine={true}
-                        >
-                          {activeChartData.map((entry, index) => (
-                            <Cell
-                              key={`active-${index}`}
-                              fill={
-                                chartColors[index % chartColors.length]
-                              }
+              {activeSubscriptions.length === 0 ? (
+                <div className="p-8 text-center text-xs text-slate-400">
+                  No active subscriptions found.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {activeSubscriptions.map((item, index) => {
+                    const percentage = getActivePercentage(item.active);
+                    const color = PALETTE[index % PALETTE.length];
+                    return (
+                      <div key={item.plan} className="p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                        <div className="flex items-center justify-between text-xs mb-2">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className="w-2.5 h-2.5 rounded-full"
+                              style={{ backgroundColor: color }}
                             />
-                          ))}
-                        </Pie>
-
-                        <Tooltip
-                          contentStyle={{
-                            borderRadius: "12px",
-                            border: "1px solid #E5E7EB",
-                            boxShadow:
-                              "0 10px 25px rgba(0, 0, 0, 0.10)",
-                          }}
-                          formatter={(value, name) => [
-                            `${value} active subscriptions`,
-                            name,
-                          ]}
-                        />
-
-                        <Legend
-                          verticalAlign="bottom"
-                          height={40}
-                        />
-
-                      </PieChart>
-                    </ResponsiveContainer>
-
-                    {/* Center */}
-                    <div className="pointer-events-none absolute left-1/2 top-[48%] flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center">
-
-                      <span className="text-xs font-medium uppercase tracking-wider text-gray-400">
-                        Currently Active
-                      </span>
-
-                      <span className="mt-1 text-4xl font-bold text-gray-900">
-                        {totalActiveSubscriptions}
-                      </span>
-
-                      <span className="text-xs text-gray-500">
-                        subscriptions
-                      </span>
-
-                    </div>
-
-                  </div>
-
-                </div>
-
-                {/* Active Subscription Summary */}
-                <div className="flex items-center">
-
-                  <div className="w-full rounded-2xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-7 shadow-sm">
-
-                    <div className="flex items-center gap-2">
-
-                      <span className="h-2.5 w-2.5 rounded-full bg-blue-500"></span>
-
-                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                        Active Summary
-                      </p>
-
-                    </div>
-
-                    <h3 className="mt-4 text-4xl font-bold text-gray-900">
-                      {totalActiveSubscriptions}
-                    </h3>
-
-                    <p className="mt-2 text-lg font-medium text-gray-700">
-                      Active subscriptions
-                    </p>
-
-                    <div className="mt-6 border-t border-gray-200 pt-5">
-
-                      <p className="text-sm text-gray-500">
-                        Plan distribution
-                      </p>
-
-                      <div className="mt-4 space-y-4">
-
-                        {activeSubscriptions.map((item, index) => (
-                          <div key={item.plan}>
-
-                            <div className="mb-1 flex items-center justify-between">
-
-                              <div className="flex items-center gap-2">
-
-                                <span
-                                  className="h-2.5 w-2.5 rounded-full"
-                                  style={{
-                                    backgroundColor:
-                                      chartColors[
-                                        index % chartColors.length
-                                      ],
-                                  }}
-                                />
-
-                                <span className="text-sm font-medium capitalize text-gray-700">
-                                  {item.plan}
-                                </span>
-
-                              </div>
-
-                              <span className="text-sm font-semibold text-gray-700">
-                                {item.active}
-                              </span>
-
-                            </div>
-
-                            <div className="h-2 overflow-hidden rounded-full bg-gray-100">
-
-                              <div
-                                className="h-full rounded-full transition-all duration-700"
-                                style={{
-                                  width: `${getActivePercentage(
-                                    item.active
-                                  )}%`,
-                                  backgroundColor:
-                                    chartColors[
-                                      index % chartColors.length
-                                    ],
-                                }}
-                              />
-
-                            </div>
-
+                            <span className="font-bold text-white capitalize">{item.plan}</span>
                           </div>
-                        ))}
-
+                          <span className="text-slate-300">
+                            <strong>{item.active}</strong> active licenses ({percentage}%)
+                          </span>
+                        </div>
+                        <div className="h-2 w-full rounded-full bg-slate-800 overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-500"
+                            style={{ width: `${percentage}%`, backgroundColor: color }}
+                          />
+                        </div>
                       </div>
-
-                    </div>
-
-                  </div>
-
+                    );
+                  })}
                 </div>
-
-              </div>
-            )}
-
+              )}
+            </GlassCard>
           </div>
-
-        </div>
+        )}
       </main>
     </div>
   );

@@ -4,6 +4,8 @@ import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import BackButton from "../components/BackButton";
 import API_URL from "../api";
+import { AmbientBackground, GlassCard, ErrorBanner } from "../components/UI";
+import { IconCoupons, IconPlus } from "../components/Icons";
 
 function CreateCoupon() {
   const navigate = useNavigate();
@@ -18,10 +20,10 @@ function CreateCoupon() {
   });
 
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
   const handleChange = (event) => {
     const { name, value } = event.target;
-
     setFormData((previous) => ({
       ...previous,
       [name]: value,
@@ -30,285 +32,200 @@ function CreateCoupon() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    setError("");
 
     if (!formData.code.trim()) {
-      alert("Please enter a coupon code");
+      setError("Please enter a coupon code");
       return;
     }
 
     if (!formData.discountValue) {
-      alert("Please enter a discount value");
+      setError("Please enter a discount value");
       return;
     }
 
     try {
       setSubmitting(true);
 
-      const response = await fetch(
-        `${API_URL}/api/coupons`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(formData),
-        }
-      );
+      const response = await fetch(`${API_URL}/api/coupons`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
 
       const data = await response.json();
 
       if (!response.ok) {
-        alert(data.message || "Failed to create coupon");
+        setError(data.message || "Failed to create coupon");
         return;
       }
 
-      alert("Coupon created successfully");
-
       navigate("/coupons");
-    } catch (error) {
-      console.error("Create coupon error:", error);
-      alert("Something went wrong");
+    } catch (err) {
+      console.error("Create coupon error:", err);
+      setError("Something went wrong while connecting to the backend.");
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="relative min-h-screen bg-[#060913] text-slate-100 overflow-x-hidden">
+      <AmbientBackground />
       <Sidebar />
       <Topbar />
 
-      <main className="ml-64 pt-16">
-        <div className="p-8">
-
+      <main className="lg:ml-64 pt-20 pb-12 px-4 sm:px-8 relative z-10">
+        <div className="max-w-2xl mx-auto">
           {/* Header */}
-          <div className="mb-6">
-            <BackButton />
-
-            <h1 className="mt-4 text-2xl font-bold text-gray-800">
-              Create Coupon
-            </h1>
-
-            <p className="mt-1 text-sm text-gray-500">
-              Create a discount coupon for customers
-            </p>
+          <div className="mb-8 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <BackButton to="/coupons" />
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
+                  <IconCoupons className="w-6 h-6 text-purple-400" />
+                  Create Discount Coupon
+                </h1>
+                <p className="mt-1 text-sm text-slate-400">
+                  Configure promotion code, discount rules, and usage constraints
+                </p>
+              </div>
+            </div>
           </div>
 
-          {/* Form */}
-          <div className="max-w-3xl rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
+          {error && <ErrorBanner message={error} />}
 
-            <form
-              onSubmit={handleSubmit}
-              className="space-y-6"
-            >
-
-              {/* Coupon Code */}
+          <GlassCard className="p-8 sm:p-10 border-white/10">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Promo Code */}
               <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  Coupon Code
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+                  Coupon Code <span className="text-rose-400">*</span>
                 </label>
-
                 <input
                   type="text"
                   name="code"
                   value={formData.code}
                   onChange={handleChange}
-                  placeholder="Example: WELCOME20"
-                  className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm uppercase outline-none focus:border-gray-900"
+                  placeholder="e.g. FLASH30, WELCOME2026"
+                  className="w-full glass-input rounded-xl px-4 py-3 text-sm font-mono uppercase placeholder-slate-500"
+                  required
                 />
-
-                <p className="mt-1 text-xs text-gray-500">
-                  Coupon codes are automatically converted to uppercase.
-                </p>
               </div>
 
-              {/* Discount Type */}
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  Discount Type
-                </label>
+              {/* Type and Value */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+                    Discount Type
+                  </label>
+                  <select
+                    name="discountType"
+                    value={formData.discountType}
+                    onChange={handleChange}
+                    className="w-full glass-input rounded-xl px-4 py-3 text-sm cursor-pointer"
+                  >
+                    <option value="PERCENTAGE" className="bg-slate-900 text-white">Percentage (%)</option>
+                    <option value="FIXED" className="bg-slate-900 text-white">Fixed Amount (₹)</option>
+                  </select>
+                </div>
 
-                <select
-                  name="discountType"
-                  value={formData.discountType}
-                  onChange={handleChange}
-                  className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none focus:border-gray-900"
-                >
-                  <option value="PERCENTAGE">
-                    Percentage
-                  </option>
-
-                  <option value="FIXED">
-                    Fixed Amount
-                  </option>
-                </select>
-              </div>
-
-              {/* Discount Value */}
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  Discount Value
-                </label>
-
-                <div className="relative">
-
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+                    Discount Value <span className="text-rose-400">*</span>
+                  </label>
                   <input
                     type="number"
                     name="discountValue"
                     value={formData.discountValue}
                     onChange={handleChange}
+                    placeholder={formData.discountType === "PERCENTAGE" ? "20" : "500"}
                     min="0"
-                    step="0.01"
-                    placeholder={
-                      formData.discountType === "PERCENTAGE"
-                        ? "Example: 20"
-                        : "Example: 100"
-                    }
-                    className="w-full rounded-lg border border-gray-300 px-4 py-3 pr-12 text-sm outline-none focus:border-gray-900"
+                    step="any"
+                    className="w-full glass-input rounded-xl px-4 py-3 text-sm placeholder-slate-500"
+                    required
                   />
+                </div>
+              </div>
 
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-gray-500">
-                    {formData.discountType === "PERCENTAGE"
-                      ? "%"
-                      : "₹"}
-                  </span>
-
+              {/* Max Uses & Expiry */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+                    Maximum Redemption Cap (Optional)
+                  </label>
+                  <input
+                    type="number"
+                    name="maxUses"
+                    value={formData.maxUses}
+                    onChange={handleChange}
+                    min="1"
+                    placeholder="Unlimited"
+                    className="w-full glass-input rounded-xl px-4 py-3 text-sm placeholder-slate-500"
+                  />
                 </div>
 
-                {formData.discountType === "PERCENTAGE" && (
-                  <p className="mt-1 text-xs text-gray-500">
-                    Enter a value between 1 and 100.
-                  </p>
-                )}
-              </div>
-
-              {/* Maximum Uses */}
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  Maximum Uses
-                </label>
-
-                <input
-                  type="number"
-                  name="maxUses"
-                  value={formData.maxUses}
-                  onChange={handleChange}
-                  min="1"
-                  placeholder="Leave empty for unlimited"
-                  className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none focus:border-gray-900"
-                />
-
-                <p className="mt-1 text-xs text-gray-500">
-                  Leave empty if the coupon can be used unlimited times.
-                </p>
-              </div>
-
-              {/* Expiry */}
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  Expiry Date
-                </label>
-
-                <input
-                  type="date"
-                  name="expiresAt"
-                  value={formData.expiresAt}
-                  onChange={handleChange}
-                  className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none focus:border-gray-900"
-                />
-
-                <p className="mt-1 text-xs text-gray-500">
-                  Leave empty if the coupon does not expire.
-                </p>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+                    Expiration Date (Optional)
+                  </label>
+                  <input
+                    type="date"
+                    name="expiresAt"
+                    value={formData.expiresAt}
+                    onChange={handleChange}
+                    className="w-full glass-input rounded-xl px-4 py-3 text-sm"
+                  />
+                </div>
               </div>
 
               {/* Status */}
               <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
                   Status
                 </label>
-
                 <select
                   name="status"
                   value={formData.status}
                   onChange={handleChange}
-                  className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none focus:border-gray-900"
+                  className="w-full glass-input rounded-xl px-4 py-3 text-sm cursor-pointer"
                 >
-                  <option value="ACTIVE">
-                    Active
-                  </option>
-
-                  <option value="INACTIVE">
-                    Inactive
-                  </option>
+                  <option value="ACTIVE" className="bg-slate-900 text-white">ACTIVE</option>
+                  <option value="INACTIVE" className="bg-slate-900 text-white">INACTIVE</option>
                 </select>
               </div>
 
-              {/* Preview */}
-              <div className="rounded-lg bg-gray-50 p-5">
-
-                <h3 className="mb-3 text-sm font-semibold text-gray-800">
-                  Coupon Preview
-                </h3>
-
-                <div className="grid gap-4 md:grid-cols-2">
-
-                  <div>
-                    <p className="text-xs text-gray-500">
-                      Code
-                    </p>
-
-                    <p className="mt-1 font-semibold text-gray-800">
-                      {formData.code
-                        ? formData.code.toUpperCase()
-                        : "—"}
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-xs text-gray-500">
-                      Discount
-                    </p>
-
-                    <p className="mt-1 font-semibold text-gray-800">
-                      {formData.discountValue
-                        ? formData.discountType === "PERCENTAGE"
-                          ? `${formData.discountValue}%`
-                          : `₹${formData.discountValue}`
-                        : "—"}
-                    </p>
-                  </div>
-
-                </div>
-              </div>
-
-              {/* Buttons */}
-              <div className="flex justify-end gap-3 border-t border-gray-200 pt-6">
-
+              {/* Actions */}
+              <div className="pt-6 border-t border-white/10 flex items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => navigate("/coupons")}
-                  className="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  className="btn-secondary px-5 py-2.5 rounded-xl text-xs font-semibold"
                 >
                   Cancel
                 </button>
-
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="btn-primary px-6 py-2.5 rounded-xl text-xs font-semibold inline-flex items-center gap-2 cursor-pointer disabled:opacity-50"
                 >
-                  {submitting
-                    ? "Creating..."
-                    : "Create Coupon"}
+                  {submitting ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Creating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <IconPlus className="w-4 h-4" />
+                      <span>Create Coupon</span>
+                    </>
+                  )}
                 </button>
-
               </div>
-
             </form>
-
-          </div>
-
+          </GlassCard>
         </div>
       </main>
     </div>

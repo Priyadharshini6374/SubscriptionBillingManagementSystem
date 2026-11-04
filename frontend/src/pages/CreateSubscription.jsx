@@ -5,6 +5,8 @@ import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import BackButton from "../components/BackButton";
 import API_URL from "../api";
+import { AmbientBackground, GlassCard, LoadingSpinner, ErrorBanner } from "../components/UI";
+import { IconSubscriptions, IconPlus, IconCheck } from "../components/Icons";
 
 function CreateSubscription() {
   const navigate = useNavigate();
@@ -35,46 +37,31 @@ function CreateSubscription() {
       setLoading(true);
       setError("");
 
-      const [customersResponse, plansResponse] =
-        await Promise.all([
-          fetch(`${API_URL}/api/customers`),
-          fetch(`${API_URL}/api/plans`),
-        ]);
+      const [customersResponse, plansResponse] = await Promise.all([
+        fetch(`${API_URL}/api/customers`),
+        fetch(`${API_URL}/api/plans`),
+      ]);
 
-      const customersData =
-        await customersResponse.json();
-
-      const plansData =
-        await plansResponse.json();
+      const customersData = await customersResponse.json();
+      const plansData = await plansResponse.json();
 
       if (!customersResponse.ok) {
-        throw new Error(
-          customersData.message ||
-            "Failed to load customers"
-        );
+        throw new Error(customersData.message || "Failed to load customers");
       }
 
       if (!plansResponse.ok) {
-        throw new Error(
-          plansData.message ||
-            "Failed to load plans"
-        );
+        throw new Error(plansData.message || "Failed to load plans");
       }
 
-      setCustomers(customersData);
-
+      setCustomers(Array.isArray(customersData) ? customersData : []);
       setPlans(
-        plansData.filter(
-          (plan) => plan.status === "ACTIVE"
-        )
+        Array.isArray(plansData)
+          ? plansData.filter((plan) => plan.status === "ACTIVE")
+          : []
       );
     } catch (err) {
       console.error(err);
-
-      setError(
-        err.message ||
-          "Unable to load customers and plans."
-      );
+      setError(err.message || "Unable to load customers and plans.");
     } finally {
       setLoading(false);
     }
@@ -82,13 +69,11 @@ function CreateSubscription() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
 
-    // Remove applied coupon when changing plan
     if (name === "planId") {
       setCoupon(null);
       setCouponError("");
@@ -99,50 +84,28 @@ function CreateSubscription() {
     (plan) => String(plan.id) === formData.planId
   );
 
-  // Calculate prices
-  const originalPrice = selectedPlan
-    ? Number(selectedPlan.price)
-    : 0;
-
+  const originalPrice = selectedPlan ? Number(selectedPlan.price) : 0;
   let discountAmount = 0;
 
   if (coupon && selectedPlan) {
     if (coupon.discountType === "PERCENTAGE") {
-      discountAmount =
-        (originalPrice *
-          Number(coupon.discountValue)) /
-        100;
+      discountAmount = (originalPrice * Number(coupon.discountValue)) / 100;
     } else {
-      discountAmount = Number(
-        coupon.discountValue
-      );
+      discountAmount = Number(coupon.discountValue);
     }
-
-    // Discount cannot be greater than plan price
-    discountAmount = Math.min(
-      discountAmount,
-      originalPrice
-    );
+    discountAmount = Math.min(discountAmount, originalPrice);
   }
 
-  const finalPrice = Math.max(
-    originalPrice - discountAmount,
-    0
-  );
+  const finalPrice = Math.max(originalPrice - discountAmount, 0);
 
-  // Apply coupon
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) {
-      setCouponError(
-        "Please enter a coupon code."
-      );
+      setCouponError("Please enter a coupon code.");
       return;
     }
 
     if (!selectedPlan) {
-      setCouponError(
-        "Please select a plan first."
-      );
+      setCouponError("Please select a plan first.");
       return;
     }
 
@@ -151,45 +114,30 @@ function CreateSubscription() {
       setCouponError("");
       setCoupon(null);
 
-      const response = await fetch(
-        `${API_URL}/api/coupons/validate`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            code: couponCode.trim(),
-          }),
-        }
-      );
+      const response = await fetch(`${API_URL}/api/coupons/validate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          code: couponCode.trim(),
+        }),
+      });
 
       const data = await response.json();
 
       if (!response.ok) {
-        setCouponError(
-          data.message ||
-            "Invalid coupon code."
-        );
+        setCouponError(data.message || "Invalid coupon code.");
         return;
       }
 
       setCoupon(data.coupon);
     } catch (err) {
       console.error(err);
-
-      setCouponError(
-        "Unable to validate coupon."
-      );
+      setCouponError("Unable to validate coupon.");
     } finally {
       setCouponLoading(false);
     }
-  };
-
-  const handleRemoveCoupon = () => {
-    setCoupon(null);
-    setCouponCode("");
-    setCouponError("");
   };
 
   const handleSubmit = async (e) => {
@@ -197,413 +145,227 @@ function CreateSubscription() {
     setError("");
 
     if (!formData.userId) {
-      setError(
-        "Please select a customer."
-      );
+      setError("Please select a customer.");
       return;
     }
 
     if (!formData.planId) {
-      setError(
-        "Please select a plan."
-      );
+      setError("Please select a plan.");
       return;
     }
 
     try {
       setSaving(true);
 
-      const response = await fetch(
-        `${API_URL}/api/subscriptions`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            userId: Number(formData.userId),
-            planId: Number(formData.planId),
-
-            // Send coupon information
-            couponId: coupon
-              ? Number(coupon.id)
-              : null,
-
-            discountAmount,
-            finalAmount: finalPrice,
-          }),
-        }
-      );
+      const response = await fetch(`${API_URL}/api/subscriptions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: Number(formData.userId),
+          planId: Number(formData.planId),
+          couponCode: coupon ? coupon.code : undefined,
+        }),
+      });
 
       const data = await response.json();
 
       if (!response.ok) {
-        setError(
-          data.message ||
-            "Failed to create subscription."
-        );
+        setError(data.message || "Failed to create subscription.");
         return;
       }
-
-      alert(
-        coupon
-          ? `Subscription created successfully with ${coupon.code} coupon!`
-          : "Subscription created successfully!"
-      );
 
       navigate("/subscriptions");
     } catch (err) {
       console.error(err);
-
-      setError(
-        "Unable to connect to the backend."
-      );
+      setError("Unable to connect to the backend.");
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="relative min-h-screen bg-[#060913] text-slate-100 overflow-x-hidden">
+      <AmbientBackground />
       <Sidebar />
       <Topbar />
 
-      <main className="ml-64 pt-20">
-        <div className="px-8 py-6">
-
+      <main className="lg:ml-64 pt-20 pb-12 px-4 sm:px-8 relative z-10">
+        <div className="max-w-3xl mx-auto">
           {/* Header */}
-          <div className="mb-6 flex items-center gap-4">
-
-            <BackButton />
-
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Create Subscription
-              </h1>
-
-              <p className="mt-1 text-sm text-gray-500">
-                Create a subscription for a customer
-              </p>
+          <div className="mb-8 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <BackButton to="/subscriptions" />
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
+                  <IconSubscriptions className="w-6 h-6 text-indigo-400" />
+                  Assign New Subscription
+                </h1>
+                <p className="mt-1 text-sm text-slate-400">
+                  Select customer, choose service tier, and apply promotional discounts
+                </p>
+              </div>
             </div>
-
           </div>
 
-          {/* Loading */}
-          {loading && (
-            <div className="max-w-2xl rounded-xl border border-gray-200 bg-white p-8 text-center shadow-sm">
-              <p className="text-sm text-gray-500">
-                Loading customers and plans...
-              </p>
-            </div>
-          )}
+          {error && <ErrorBanner message={error} />}
 
-          {/* Error */}
-          {!loading && error && (
-            <div className="mb-6 max-w-2xl rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-              {error}
-            </div>
-          )}
-
-          {/* Form */}
-          {!loading && (
-            <div className="max-w-2xl rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
-
-              <form onSubmit={handleSubmit}>
-
-                {/* Customer */}
-                <div className="mb-6">
-
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Customer *
+          {loading ? (
+            <GlassCard className="p-12">
+              <LoadingSpinner text="Loading customers and plan catalog..." />
+            </GlassCard>
+          ) : (
+            <GlassCard className="p-8 sm:p-10 border-white/10">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Customer Selector */}
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+                    Select Customer <span className="text-rose-400">*</span>
                   </label>
-
                   <select
                     name="userId"
                     value={formData.userId}
                     onChange={handleChange}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm outline-none focus:border-gray-500"
+                    className="w-full glass-input rounded-xl px-4 py-3 text-sm cursor-pointer"
+                    required
                   >
-                    <option value="">
-                      Select a customer
-                    </option>
-
+                    <option value="" className="bg-slate-900 text-white">Choose a registered customer...</option>
                     {customers.map((customer) => (
-                      <option
-                        key={customer.id}
-                        value={customer.id}
-                      >
-                        {customer.name} —{" "}
-                        {customer.email}
+                      <option key={customer.id} value={customer.id} className="bg-slate-900 text-white">
+                        {customer.name} ({customer.email})
                       </option>
                     ))}
                   </select>
-
-                  {customers.length === 0 && (
-                    <p className="mt-2 text-xs text-red-500">
-                      No customers available. Create a
-                      customer first.
-                    </p>
-                  )}
-
                 </div>
 
-                {/* Plan */}
-                <div className="mb-6">
-
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Subscription Plan *
+                {/* Plan Selector */}
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+                    Select Subscription Plan <span className="text-rose-400">*</span>
                   </label>
-
                   <select
                     name="planId"
                     value={formData.planId}
                     onChange={handleChange}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm outline-none focus:border-gray-500"
+                    className="w-full glass-input rounded-xl px-4 py-3 text-sm cursor-pointer"
+                    required
                   >
-                    <option value="">
-                      Select a plan
-                    </option>
-
+                    <option value="" className="bg-slate-900 text-white">Choose a pricing package...</option>
                     {plans.map((plan) => (
-                      <option
-                        key={plan.id}
-                        value={plan.id}
-                      >
-                        {plan.name} — ₹
-                        {plan.price.toString()} /{" "}
-                        {plan.billingCycle.toLowerCase()}
+                      <option key={plan.id} value={plan.id} className="bg-slate-900 text-white">
+                        {plan.name} — ₹{plan.price} / {plan.billingCycle?.toLowerCase()}
                       </option>
                     ))}
                   </select>
-
-                  {plans.length === 0 && (
-                    <p className="mt-2 text-xs text-red-500">
-                      No active plans available. Create
-                      an active plan first.
-                    </p>
-                  )}
-
                 </div>
 
-                {/* Selected Plan */}
+                {/* Selected Plan Details & Coupon */}
                 {selectedPlan && (
-                  <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-5">
-
-                    <h2 className="text-sm font-semibold text-gray-900">
-                      Selected Plan
-                    </h2>
-
-                    <div className="mt-4 space-y-3">
-
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">
-                          Plan
-                        </span>
-
-                        <span className="text-sm font-medium text-gray-900">
-                          {selectedPlan.name}
-                        </span>
+                  <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-4">
+                    <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                      <div>
+                        <p className="font-bold text-white text-base">{selectedPlan.name}</p>
+                        <p className="text-xs text-slate-400">
+                          {selectedPlan.description || "Active plan license"}
+                        </p>
                       </div>
-
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">
-                          Price
-                        </span>
-
-                        <span className="text-sm font-medium text-gray-900">
-                          ₹
-                          {originalPrice.toFixed(2)}
-                        </span>
+                      <div className="text-right">
+                        <p className="text-xl font-extrabold text-white">₹{selectedPlan.price}</p>
+                        <p className="text-[11px] text-slate-400 capitalize">{selectedPlan.billingCycle?.toLowerCase()}</p>
                       </div>
-
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">
-                          Billing Cycle
-                        </span>
-
-                        <span className="text-sm font-medium text-gray-900">
-                          {selectedPlan.billingCycle}
-                        </span>
-                      </div>
-
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">
-                          Trial Period
-                        </span>
-
-                        <span className="text-sm font-medium text-gray-900">
-                          {selectedPlan.trialPeriod} days
-                        </span>
-                      </div>
-
                     </div>
 
-                  </div>
-                )}
-
-                {/* Coupon */}
-                {selectedPlan && (
-                  <div className="mb-6 rounded-lg border border-gray-200 bg-white p-5">
-
-                    <h2 className="text-sm font-semibold text-gray-900">
-                      Apply Coupon
-                    </h2>
-
-                    <p className="mt-1 text-xs text-gray-500">
-                      Enter a valid coupon code to receive a discount.
-                    </p>
-
-                    <div className="mt-4 flex gap-3">
-
-                      <input
-                        type="text"
-                        value={couponCode}
-                        onChange={(e) => {
-                          setCouponCode(
-                            e.target.value.toUpperCase()
-                          );
-                          setCouponError("");
-                        }}
-                        placeholder="Enter coupon code"
-                        disabled={coupon !== null}
-                        className="flex-1 rounded-lg border border-gray-300 px-4 py-3 text-sm uppercase outline-none focus:border-gray-500 disabled:bg-gray-100"
-                      />
-
-                      {!coupon ? (
+                    {/* Coupon Input */}
+                    <div>
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+                        Promo / Coupon Code
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={couponCode}
+                          onChange={(e) => {
+                            setCouponCode(e.target.value);
+                            setCouponError("");
+                          }}
+                          placeholder="e.g. SAVE20"
+                          className="flex-1 glass-input rounded-xl px-4 py-2.5 text-xs font-mono uppercase"
+                        />
                         <button
                           type="button"
                           onClick={handleApplyCoupon}
-                          disabled={couponLoading}
-                          className="rounded-lg bg-gray-900 px-5 py-3 text-sm font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                          disabled={couponLoading || !couponCode.trim()}
+                          className="btn-secondary px-4 py-2.5 rounded-xl text-xs font-semibold cursor-pointer disabled:opacity-50"
                         >
-                          {couponLoading
-                            ? "Checking..."
-                            : "Apply"}
+                          {couponLoading ? "Checking..." : "Apply"}
                         </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={handleRemoveCoupon}
-                          className="rounded-lg border border-red-300 bg-red-50 px-5 py-3 text-sm font-medium text-red-600 hover:bg-red-100"
-                        >
-                          Remove
-                        </button>
+                      </div>
+
+                      {couponError && (
+                        <p className="mt-2 text-xs text-rose-400 font-medium">{couponError}</p>
                       )}
-
-                    </div>
-
-                    {/* Coupon success */}
-                    {coupon && (
-                      <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-4">
-
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-semibold text-green-700">
-                              Coupon Applied
-                            </p>
-
-                            <p className="mt-1 text-xs text-green-600">
-                              {coupon.code} —{" "}
-                              {coupon.discountType ===
-                              "PERCENTAGE"
-                                ? `${coupon.discountValue}% off`
-                                : `₹${coupon.discountValue} off`}
-                            </p>
-                          </div>
-
-                          <span className="text-lg font-bold text-green-700">
-                            -₹
-                            {discountAmount.toFixed(2)}
-                          </span>
-                        </div>
-
-                      </div>
-                    )}
-
-                    {/* Coupon error */}
-                    {couponError && (
-                      <p className="mt-3 text-sm text-red-600">
-                        {couponError}
-                      </p>
-                    )}
-
-                  </div>
-                )}
-
-                {/* Price Summary */}
-                {selectedPlan && (
-                  <div className="mb-8 rounded-lg border border-gray-200 bg-gray-50 p-5">
-
-                    <h2 className="text-sm font-semibold text-gray-900">
-                      Price Summary
-                    </h2>
-
-                    <div className="mt-4 space-y-3">
-
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">
-                          Original Price
-                        </span>
-
-                        <span className="text-sm font-medium text-gray-900">
-                          ₹{originalPrice.toFixed(2)}
-                        </span>
-                      </div>
 
                       {coupon && (
-                        <div className="flex justify-between">
-                          <span className="text-sm text-green-600">
-                            Coupon Discount
-                          </span>
-
-                          <span className="text-sm font-medium text-green-600">
-                            -₹{discountAmount.toFixed(2)}
+                        <div className="mt-2 flex items-center gap-2 text-xs text-emerald-400 font-medium">
+                          <IconCheck className="w-4 h-4" />
+                          <span>
+                            Coupon applied: {coupon.code} ({coupon.discountType === "PERCENTAGE" ? `${coupon.discountValue}% Off` : `₹${coupon.discountValue} Off`})
                           </span>
                         </div>
                       )}
-
-                      <div className="flex justify-between border-t border-gray-200 pt-3">
-                        <span className="text-base font-semibold text-gray-900">
-                          Final Amount
-                        </span>
-
-                        <span className="text-lg font-bold text-gray-900">
-                          ₹{finalPrice.toFixed(2)}
-                        </span>
-                      </div>
-
                     </div>
 
+                    {/* Price Breakdown */}
+                    <div className="pt-3 border-t border-white/5 space-y-1.5 text-xs">
+                      <div className="flex justify-between text-slate-400">
+                        <span>Original Rate</span>
+                        <span>₹{originalPrice.toLocaleString("en-IN")}</span>
+                      </div>
+                      {discountAmount > 0 && (
+                        <div className="flex justify-between text-emerald-400 font-medium">
+                          <span>Discount Deduction</span>
+                          <span>- ₹{discountAmount.toLocaleString("en-IN")}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-sm font-bold text-white pt-2 border-t border-white/5">
+                        <span>Net Subscription Fee</span>
+                        <span className="text-indigo-400 text-base">₹{finalPrice.toLocaleString("en-IN")}</span>
+                      </div>
+                    </div>
                   </div>
                 )}
 
-                {/* Actions */}
-                <div className="flex justify-end gap-3 border-t border-gray-200 pt-6">
-
+                {/* Submit Actions */}
+                <div className="pt-6 border-t border-white/10 flex items-center justify-end gap-3">
                   <button
                     type="button"
-                    onClick={() =>
-                      navigate("/subscriptions")
-                    }
-                    className="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    onClick={() => navigate("/subscriptions")}
+                    className="btn-secondary px-5 py-2.5 rounded-xl text-xs font-semibold"
                   >
                     Cancel
                   </button>
-
                   <button
                     type="submit"
-                    className="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-gray-800"
+                    disabled={saving}
+                    className="btn-primary px-6 py-2.5 rounded-xl text-xs font-semibold inline-flex items-center gap-2 cursor-pointer disabled:opacity-50"
                   >
-                    {saving ? "Creating..." : "Create Subscription"}
+                    {saving ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span>Activating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <IconPlus className="w-4 h-4" />
+                        <span>Activate Subscription</span>
+                      </>
+                    )}
                   </button>
-
                 </div>
-
               </form>
-
-            </div>
+            </GlassCard>
           )}
-
         </div>
       </main>
     </div>

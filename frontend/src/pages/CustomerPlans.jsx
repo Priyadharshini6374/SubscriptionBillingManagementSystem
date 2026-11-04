@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import CustomerNavbar from "../components/CustomerNavbar";
 import BackButton from "../components/BackButton";
-import CustomerLogoutButton from "../components/CustomerLogoutButton";
 import API_URL from "../api";
+import { AmbientBackground, GlassBadge, GlassCard, LoadingSpinner, ErrorBanner } from "../components/UI";
+import { IconPlans, IconCheck } from "../components/Icons";
 
 function CustomerPlans() {
   const navigate = useNavigate();
@@ -16,30 +18,21 @@ function CustomerPlans() {
       setLoading(true);
       setError("");
 
-      const response = await fetch(
-        `${API_URL}/api/plans`
-      );
-
+      const response = await fetch(`${API_URL}/api/plans`);
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.message || "Failed to fetch plans"
-        );
+        throw new Error(data.message || "Failed to fetch plans");
       }
 
-      // Show only active plans to customers
-      const activePlans = data.filter(
-        (plan) => plan.status === "ACTIVE"
-      );
+      const activePlans = Array.isArray(data)
+        ? data.filter((plan) => plan.status === "ACTIVE")
+        : [];
 
       setPlans(activePlans);
-    } catch (error) {
-      console.error("Customer plans error:", error);
-
-      setError(
-        error.message || "Unable to load plans"
-      );
+    } catch (err) {
+      console.error("Customer plans error:", err);
+      setError(err.message || "Unable to load subscription plans.");
     } finally {
       setLoading(false);
     }
@@ -51,284 +44,125 @@ function CustomerPlans() {
 
   const formatBillingCycle = (cycle) => {
     if (cycle === "MONTHLY") return "month";
-    if (cycle === "QUARTERLY") return "3 months";
+    if (cycle === "QUARTERLY") return "quarter";
     if (cycle === "YEARLY") return "year";
-
-    return cycle?.toLowerCase() || "";
+    return cycle?.toLowerCase() || "cycle";
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="relative min-h-screen bg-[#060913] text-slate-100 overflow-x-hidden">
+      <AmbientBackground />
+      <CustomerNavbar />
 
-      {/* ==================== TOPBAR ==================== */}
-
-      <header className="fixed left-0 right-0 top-0 z-10 h-16 border-b border-gray-200 bg-white">
-
-        <div className="flex h-full items-center justify-between px-8">
-
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">
-              SubBill
-            </h1>
-
-            <p className="text-xs text-gray-500">
-              Customer Portal
-            </p>
-          </div>
-
-          <CustomerLogoutButton />
-
-        </div>
-
-      </header>
-
-
-      {/* ==================== MAIN CONTENT ==================== */}
-
-      <main className="px-8 pb-10 pt-24">
-
+      <main className="max-w-7xl mx-auto pt-28 pb-16 px-4 sm:px-8 relative z-10">
         {/* Header */}
-
-        <div className="mb-8">
-
-          <BackButton />
-
-          <div className="mt-6">
-
-            <h2 className="text-3xl font-bold text-gray-900">
-              Choose a Plan
-            </h2>
-
-            <p className="mt-2 text-gray-500">
-              Select the subscription plan that works best
-              for you.
-            </p>
-
+        <div className="mb-10 text-center max-w-2xl mx-auto">
+          <div className="inline-flex items-center gap-2 mb-3">
+            <span className="text-xs font-semibold uppercase tracking-wider text-indigo-400 bg-indigo-500/10 px-3 py-1 rounded-full border border-indigo-500/20">
+              Subscription Tiers
+            </span>
           </div>
-
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+            Simple, Transparent Pricing
+          </h1>
+          <p className="mt-2 text-sm text-slate-400">
+            Pick the optimal plan for your organizational scale and access premier billing privileges
+          </p>
         </div>
 
+        {error && <ErrorBanner message={error} onRetry={fetchPlans} />}
 
-        {/* Loading */}
-
-        {loading && (
-          <div className="rounded-xl border border-gray-200 bg-white p-10 text-center">
-
-            <p className="text-sm text-gray-500">
-              Loading plans...
-            </p>
-
-          </div>
-        )}
-
-
-        {/* Error */}
-
-        {!loading && error && (
-          <div className="rounded-xl border border-red-200 bg-red-50 p-6">
-
-            <p className="text-sm font-medium text-red-600">
-              {error}
-            </p>
-
-            <button
-              onClick={fetchPlans}
-              className="mt-4 rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
-            >
-              Try Again
-            </button>
-
-          </div>
-        )}
-
-
-        {/* No Plans */}
-
-        {!loading && !error && plans.length === 0 && (
-          <div className="rounded-xl border border-gray-200 bg-white p-10 text-center">
-
-            <h3 className="text-lg font-semibold text-gray-800">
-              No plans available
-            </h3>
-
-            <p className="mt-2 text-sm text-gray-500">
-              There are currently no active subscription
-              plans.
-            </p>
-
-          </div>
-        )}
-
-
-        {/* Plans */}
-
-        {!loading && !error && plans.length > 0 && (
-
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-
+        {loading ? (
+          <GlassCard className="p-12">
+            <LoadingSpinner text="Loading subscription plans..." />
+          </GlassCard>
+        ) : plans.length === 0 ? (
+          <GlassCard className="p-12 text-center text-slate-400">
+            No active subscription packages currently available for subscription.
+          </GlassCard>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {plans.map((plan) => (
-
-              <div
+              <GlassCard
                 key={plan.id}
-                className="flex flex-col rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+                hover
+                className="p-8 flex flex-col justify-between border-white/10 relative overflow-hidden"
               >
-
-                {/* Plan Name */}
-
                 <div>
-
-                  <h3 className="text-xl font-bold text-gray-900">
-                    {plan.name}
-                  </h3>
-
-                  <p className="mt-2 min-h-12 text-sm text-gray-500">
-                    {plan.description ||
-                      "Subscription plan"}
-                  </p>
-
-                </div>
-
-
-                {/* Price */}
-
-                <div className="mt-6">
-
-                  <span className="text-4xl font-bold text-gray-900">
-                    ₹{Number(plan.price).toLocaleString("en-IN")}
-                  </span>
-
-                  <span className="ml-1 text-sm text-gray-500">
-                    / {formatBillingCycle(plan.billingCycle)}
-                  </span>
-
-                </div>
-
-
-                {/* Trial */}
-
-                {plan.trialPeriod > 0 && (
-
-                  <div className="mt-4 rounded-lg bg-gray-50 px-3 py-2">
-
-                    <p className="text-sm font-medium text-gray-700">
-                      {plan.trialPeriod}-day free trial
-                    </p>
-
+                  <div className="flex items-start justify-between gap-3 mb-4">
+                    <div>
+                      <h3 className="text-xl font-bold text-white tracking-tight">
+                        {plan.name}
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-1 min-h-[32px]">
+                        {plan.description || "Recurring service plan"}
+                      </p>
+                    </div>
+                    <GlassBadge status="ACTIVE" label="Available" />
                   </div>
 
-                )}
-
-
-                {/* Features */}
-
-                <div className="mt-6 flex-1">
-
-                  <h4 className="text-sm font-semibold text-gray-800">
-                    Features
-                  </h4>
-
-                  <ul className="mt-3 space-y-2">
-
-                    {Array.isArray(plan.features) &&
-                    plan.features.length > 0 ? (
-
-                      plan.features.map(
-                        (feature, index) => (
-
-                          <li
-                            key={index}
-                            className="flex items-start gap-2 text-sm text-gray-600"
-                          >
-                            <span className="mt-0.5 text-green-600">
-                              ✓
-                            </span>
-
-                            <span>
-                              {feature}
-                            </span>
-                          </li>
-
-                        )
-                      )
-
-                    ) : (
-
-                      <li className="text-sm text-gray-500">
-                        Standard features included
-                      </li>
-
+                  {/* Price */}
+                  <div className="my-6 p-4 rounded-xl bg-white/[0.03] border border-white/5">
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-3xl sm:text-4xl font-black text-white">
+                        ₹{Number(plan.price).toLocaleString("en-IN")}
+                      </span>
+                      <span className="text-xs text-slate-400 font-medium">
+                        / {formatBillingCycle(plan.billingCycle)}
+                      </span>
+                    </div>
+                    {plan.trialPeriod > 0 && (
+                      <p className="text-[11px] text-sky-400 font-medium mt-1">
+                        Includes {plan.trialPeriod}-day risk-free trial
+                      </p>
                     )}
+                  </div>
 
-                  </ul>
+                  {/* Limits and quotas */}
+                  <div className="space-y-2 py-3 border-y border-white/5 text-xs text-slate-300">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">User Seats:</span>
+                      <span className="font-semibold text-white">{plan.maximumUsers || "Unlimited"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Storage Capacity:</span>
+                      <span className="font-semibold text-white">{plan.storageLimit ? `${plan.storageLimit} GB` : "Unlimited"}</span>
+                    </div>
+                  </div>
 
+                  {/* Features */}
+                  <div className="mt-5 space-y-2.5">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 block mb-2">
+                      Included Capabilities:
+                    </span>
+                    {Array.isArray(plan.features) && plan.features.length > 0 ? (
+                      plan.features.map((feature, i) => (
+                        <div key={i} className="flex items-start gap-2.5 text-xs text-slate-300">
+                          <div className="w-4 h-4 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 mt-0.5">
+                            <IconCheck className="w-2.5 h-2.5" />
+                          </div>
+                          <span>{feature}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-xs text-slate-500 italic">All core features included.</p>
+                    )}
+                  </div>
                 </div>
 
-
-                {/* Limits */}
-
-                <div className="mt-6 space-y-2 border-t border-gray-100 pt-5">
-
-                  {plan.maximumUsers !== null &&
-                    plan.maximumUsers !== undefined && (
-
-                    <div className="flex justify-between text-sm">
-
-                      <span className="text-gray-500">
-                        Maximum Users
-                      </span>
-
-                      <span className="font-medium text-gray-800">
-                        {plan.maximumUsers}
-                      </span>
-
-                    </div>
-
-                  )}
-
-
-                  {plan.storageLimit !== null &&
-                    plan.storageLimit !== undefined && (
-
-                    <div className="flex justify-between text-sm">
-
-                      <span className="text-gray-500">
-                        Storage
-                      </span>
-
-                      <span className="font-medium text-gray-800">
-                        {plan.storageLimit} GB
-                      </span>
-
-                    </div>
-
-                  )}
-
+                <div className="mt-8 pt-6 border-t border-white/10">
+                  <button
+                    onClick={() => navigate(`/customer/subscribe/${plan.id}`)}
+                    className="w-full btn-primary py-3 rounded-xl font-semibold text-xs inline-flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-indigo-950/50"
+                  >
+                    <span>Subscribe to {plan.name}</span>
+                  </button>
                 </div>
-
-
-                {/* Choose Plan */}
-
-                <button
-                  onClick={() =>
-                    navigate(
-                      `/customer/subscribe/${plan.id}`
-                    )
-                  }
-                  className="mt-6 w-full rounded-lg bg-gray-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-gray-800"
-                >
-                  Choose Plan
-                </button>
-
-              </div>
-
+              </GlassCard>
             ))}
-
           </div>
-
         )}
-
       </main>
-
     </div>
   );
 }

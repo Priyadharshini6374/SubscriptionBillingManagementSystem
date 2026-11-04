@@ -4,6 +4,8 @@ import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import BackButton from "../components/BackButton";
 import API_URL from "../api";
+import { AmbientBackground, GlassCard, LoadingSpinner, ErrorBanner } from "../components/UI";
+import { IconPayments, IconPlus } from "../components/Icons";
 
 function CreatePayment() {
   const navigate = useNavigate();
@@ -21,6 +23,7 @@ function CreatePayment() {
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     fetchInvoices();
@@ -28,303 +31,212 @@ function CreatePayment() {
 
   const fetchInvoices = async () => {
     try {
-      const response = await fetch(
-        `${API_URL}/api/invoices`
-      );
+      setLoading(true);
+      setError("");
 
+      const response = await fetch(`${API_URL}/api/invoices`);
       const data = await response.json();
 
-      // Only unpaid invoices can be paid
-      const pendingInvoices = data.filter(
-        (invoice) =>
-          invoice.status === "PENDING" ||
-          invoice.status === "OVERDUE"
-      );
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to fetch invoices");
+      }
+
+      const pendingInvoices = Array.isArray(data)
+        ? data.filter(
+            (invoice) =>
+              invoice.status === "PENDING" || invoice.status === "OVERDUE"
+          )
+        : [];
 
       setInvoices(pendingInvoices);
-    } catch (error) {
-      console.error("Failed to fetch invoices:", error);
+    } catch (err) {
+      console.error("Failed to fetch invoices:", err);
+      setError(err.message || "Failed to load unpaid invoices.");
     } finally {
       setLoading(false);
     }
   };
 
   const selectedInvoiceData = invoices.find(
-    (invoice) =>
-      invoice.id === Number(selectedInvoice)
+    (invoice) => invoice.id === Number(selectedInvoice)
   );
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    setError("");
 
     if (!selectedInvoice) {
-      alert("Please select an invoice");
+      setError("Please select an invoice to settle.");
       return;
     }
 
     try {
       setSubmitting(true);
 
-      const response = await fetch(
-        `${API_URL}/api/payments`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            invoiceId: Number(selectedInvoice),
-            paymentMethod,
-            status: paymentStatus,
-          }),
-        }
-      );
+      const response = await fetch(`${API_URL}/api/payments`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          invoiceId: Number(selectedInvoice),
+          paymentMethod,
+          status: paymentStatus,
+        }),
+      });
 
       const data = await response.json();
 
       if (!response.ok) {
-        alert(data.message || "Payment failed");
-        return;
+        throw new Error(data.message || "Failed to record payment");
       }
 
-      alert(data.message);
-
       navigate("/payments");
-    } catch (error) {
-      console.error("Payment error:", error);
-      alert("Something went wrong");
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "Error processing payment record.");
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="relative min-h-screen bg-[#060913] text-slate-100 overflow-x-hidden">
+      <AmbientBackground />
       <Sidebar />
       <Topbar />
 
-      <main className="ml-64 pt-16">
-        <div className="p-8">
-
-          <div className="mb-6">
-            <BackButton />
-
-            <h1 className="mt-4 text-2xl font-bold text-gray-800">
-              Record Payment
-            </h1>
-
-            <p className="mt-1 text-sm text-gray-500">
-              Record a simulated payment for an invoice
-            </p>
+      <main className="lg:ml-64 pt-20 pb-12 px-4 sm:px-8 relative z-10">
+        <div className="max-w-2xl mx-auto">
+          {/* Header */}
+          <div className="mb-8 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <BackButton to="/payments" />
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
+                  <IconPayments className="w-6 h-6 text-emerald-400" />
+                  Record Manual Payment
+                </h1>
+                <p className="mt-1 text-sm text-slate-400">
+                  Log external or direct offline customer payments
+                </p>
+              </div>
+            </div>
           </div>
 
-          <div className="max-w-2xl rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
+          {error && <ErrorBanner message={error} />}
 
-            {loading ? (
-              <p className="text-center text-gray-500">
-                Loading invoices...
-              </p>
-            ) : invoices.length === 0 ? (
-              <div className="py-8 text-center">
-
-                <div className="mb-4 text-5xl">
-                  🧾
-                </div>
-
-                <h2 className="text-lg font-semibold text-gray-800">
-                  No pending invoices
-                </h2>
-
-                <p className="mt-2 text-sm text-gray-500">
-                  Create a pending invoice before recording a payment.
-                </p>
-
-                <button
-                  onClick={() => navigate("/invoices")}
-                  className="mt-5 rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-gray-800"
-                >
-                  Go to Invoices
-                </button>
-
-              </div>
-            ) : (
-              <form
-                onSubmit={handleSubmit}
-                className="space-y-6"
-              >
-
-                {/* Invoice */}
+          {loading ? (
+            <GlassCard className="p-12">
+              <LoadingSpinner text="Retrieving unpaid invoice statements..." />
+            </GlassCard>
+          ) : (
+            <GlassCard className="p-8 sm:p-10 border-white/10">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Select Invoice */}
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Invoice
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+                    Pending Invoice <span className="text-rose-400">*</span>
                   </label>
-
                   <select
                     value={selectedInvoice}
-                    onChange={(e) =>
-                      setSelectedInvoice(e.target.value)
-                    }
-                    className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none focus:border-gray-900"
+                    onChange={(e) => setSelectedInvoice(e.target.value)}
+                    className="w-full glass-input rounded-xl px-4 py-3 text-sm cursor-pointer"
+                    required
                   >
-                    <option value="">
-                      Select an invoice
-                    </option>
-
-                    {invoices.map((invoice) => (
-                      <option
-                        key={invoice.id}
-                        value={invoice.id}
-                      >
-                        {invoice.invoiceNumber} -{" "}
-                        {invoice.user?.name} - ₹
-                        {Number(invoice.totalAmount).toFixed(2)}
+                    <option value="" className="bg-slate-900 text-white">Choose unpaid invoice...</option>
+                    {invoices.map((inv) => (
+                      <option key={inv.id} value={inv.id} className="bg-slate-900 text-white">
+                        {inv.invoiceNumber} — {inv.user?.name} (₹{inv.totalAmount || inv.amount})
                       </option>
                     ))}
                   </select>
                 </div>
 
-                {/* Invoice Information */}
+                {/* Invoice Preview */}
                 {selectedInvoiceData && (
-                  <div className="rounded-lg bg-gray-50 p-5">
-
-                    <h3 className="mb-3 text-sm font-semibold text-gray-800">
-                      Invoice Information
-                    </h3>
-
-                    <div className="grid grid-cols-2 gap-4">
-
-                      <div>
-                        <p className="text-xs text-gray-500">
-                          Customer
-                        </p>
-
-                        <p className="mt-1 text-sm font-medium text-gray-800">
-                          {selectedInvoiceData.user?.name}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-xs text-gray-500">
-                          Invoice
-                        </p>
-
-                        <p className="mt-1 text-sm font-medium text-gray-800">
-                          {selectedInvoiceData.invoiceNumber}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-xs text-gray-500">
-                          Amount
-                        </p>
-
-                        <p className="mt-1 text-lg font-bold text-gray-900">
-                          ₹
-                          {Number(
-                            selectedInvoiceData.totalAmount
-                          ).toFixed(2)}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-xs text-gray-500">
-                          Invoice Status
-                        </p>
-
-                        <p className="mt-1 text-sm font-medium text-yellow-600">
-                          {selectedInvoiceData.status}
-                        </p>
-                      </div>
-
+                  <div className="p-4 rounded-xl bg-white/[0.03] border border-white/5 space-y-2 text-xs">
+                    <div className="flex justify-between text-slate-400">
+                      <span>Customer:</span>
+                      <span className="font-semibold text-white">{selectedInvoiceData.user?.name}</span>
+                    </div>
+                    <div className="flex justify-between text-slate-400">
+                      <span>Status:</span>
+                      <span className="text-amber-400 font-semibold">{selectedInvoiceData.status}</span>
+                    </div>
+                    <div className="flex justify-between text-sm font-bold text-white pt-2 border-t border-white/5">
+                      <span>Settlement Amount:</span>
+                      <span className="text-emerald-400 text-base">
+                        ₹{Number(selectedInvoiceData.totalAmount || selectedInvoiceData.amount).toLocaleString("en-IN")}
+                      </span>
                     </div>
                   </div>
                 )}
 
                 {/* Payment Method */}
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Payment Method
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+                    Payment Gateway / Method
                   </label>
-
                   <select
                     value={paymentMethod}
-                    onChange={(e) =>
-                      setPaymentMethod(e.target.value)
-                    }
-                    className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none focus:border-gray-900"
+                    onChange={(e) => setPaymentMethod(e.target.value)}
+                    className="w-full glass-input rounded-xl px-4 py-3 text-sm cursor-pointer"
                   >
-                    <option value="UPI">
-                      UPI
-                    </option>
-
-                    <option value="CARD">
-                      Card
-                    </option>
-
-                    <option value="NET_BANKING">
-                      Net Banking
-                    </option>
-
-                    <option value="WALLET">
-                      Wallet
-                    </option>
+                    <option value="UPI" className="bg-slate-900 text-white">UPI / QR Code</option>
+                    <option value="CARD" className="bg-slate-900 text-white">Credit / Debit Card</option>
+                    <option value="NETBANKING" className="bg-slate-900 text-white">Net Banking</option>
+                    <option value="BANK_TRANSFER" className="bg-slate-900 text-white">Bank Wire / NEFT</option>
+                    <option value="CASH" className="bg-slate-900 text-white">Direct Cash</option>
                   </select>
                 </div>
 
-                {/* Simulation Status */}
+                {/* Payment Status */}
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Simulated Payment Result
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+                    Transaction Result
                   </label>
-
                   <select
                     value={paymentStatus}
-                    onChange={(e) =>
-                      setPaymentStatus(e.target.value)
-                    }
-                    className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none focus:border-gray-900"
+                    onChange={(e) => setPaymentStatus(e.target.value)}
+                    className="w-full glass-input rounded-xl px-4 py-3 text-sm cursor-pointer"
                   >
-                    <option value="SUCCESS">
-                      Successful Payment
-                    </option>
-
-                    <option value="FAILED">
-                      Failed Payment
-                    </option>
+                    <option value="SUCCESS" className="bg-slate-900 text-white">SUCCESS (Mark invoice paid)</option>
+                    <option value="PENDING" className="bg-slate-900 text-white">PENDING (Processing)</option>
+                    <option value="FAILED" className="bg-slate-900 text-white">FAILED (Declined)</option>
                   </select>
-
-                  <p className="mt-2 text-xs text-gray-500">
-                    This is a simulated payment. No real money will be charged.
-                  </p>
                 </div>
 
-                {/* Buttons */}
-                <div className="flex justify-end gap-3 border-t border-gray-200 pt-6">
-
+                {/* Actions */}
+                <div className="pt-6 border-t border-white/10 flex items-center justify-end gap-3">
                   <button
                     type="button"
                     onClick={() => navigate("/payments")}
-                    className="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    className="btn-secondary px-5 py-2.5 rounded-xl text-xs font-semibold"
                   >
                     Cancel
                   </button>
-
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="btn-primary px-6 py-2.5 rounded-xl text-xs font-semibold inline-flex items-center gap-2 cursor-pointer disabled:opacity-50"
                   >
-                    {submitting
-                      ? "Processing..."
-                      : "Record Payment"}
+                    {submitting ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span>Recording...</span>
+                      </>
+                    ) : (
+                      <>
+                        <IconPlus className="w-4 h-4" />
+                        <span>Record Settlement</span>
+                      </>
+                    )}
                   </button>
-
                 </div>
-
               </form>
-            )}
-
-          </div>
+            </GlassCard>
+          )}
         </div>
       </main>
     </div>
