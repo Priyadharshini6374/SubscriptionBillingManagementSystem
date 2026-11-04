@@ -1,10 +1,15 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import Sidebar from "../components/Sidebar";
+import Topbar from "../components/Topbar";
 import BackButton from "../components/BackButton";
 import API_URL from "../api";
+import { AmbientBackground, GlassBadge, GlassCard, LoadingSpinner, ErrorBanner } from "../components/UI";
+import { IconCoupons, IconEdit } from "../components/Icons";
 
 function CouponDetails() {
   const { id } = useParams();
+  const navigate = useNavigate();
 
   const [coupon, setCoupon] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -23,251 +28,133 @@ function CouponDetails() {
         setLoading(false);
       })
       .catch((err) => {
-        setError(err.message);
+        setError(err.message || "Failed to load coupon details.");
         setLoading(false);
       });
   }, [id]);
 
-  if (loading) {
-    return (
-      <div className="ml-64 min-h-screen bg-gray-50 p-8">
-        <p className="text-gray-600">Loading coupon details...</p>
-      </div>
-    );
-  }
-
-  if (error || !coupon) {
-    return (
-      <div className="ml-64 min-h-screen bg-gray-50 p-8">
-        <BackButton />
-        <div className="mt-6 rounded-lg border border-red-200 bg-red-50 p-6">
-          <p className="text-red-600">
-            {error || "Coupon not found"}
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   const remainingUses =
-    coupon.maxUses === null
+    coupon?.maxUses === null || coupon?.maxUses === undefined
       ? "Unlimited"
-      : Math.max(coupon.maxUses - coupon.usedCount, 0);
-
-  const formatDate = (date) => {
-    if (!date) return "—";
-
-    return new Date(date).toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-  };
+      : Math.max(coupon.maxUses - (coupon.usedCount || 0), 0);
 
   const discountText =
-    coupon.discountType === "PERCENTAGE"
-      ? `${coupon.discountValue}%`
-      : `₹${coupon.discountValue}`;
+    coupon?.discountType === "PERCENTAGE"
+      ? `${coupon.discountValue}% OFF`
+      : `₹${Number(coupon?.discountValue || 0).toLocaleString("en-IN")} OFF`;
 
   return (
-    <div className="ml-64 min-h-screen bg-gray-50 p-8">
+    <div className="relative min-h-screen bg-[#060913] text-slate-100 overflow-x-hidden">
+      <AmbientBackground />
+      <Sidebar />
+      <Topbar />
 
-      {/* Header */}
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Coupon Details
-          </h1>
-          <p className="mt-1 text-gray-500">
-            View coupon information and usage history
-          </p>
+      <main className="lg:ml-64 pt-20 pb-12 px-4 sm:px-8 relative z-10">
+        <div className="max-w-3xl mx-auto">
+          {/* Header */}
+          <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <BackButton to="/coupons" />
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
+                  <IconCoupons className="w-6 h-6 text-purple-400" />
+                  Coupon #{id}
+                </h1>
+                <p className="mt-1 text-sm text-slate-400">
+                  Promo voucher rules and real-time redemption counter
+                </p>
+              </div>
+            </div>
+
+            {coupon && (
+              <button
+                onClick={() => navigate(`/coupons/edit/${coupon.id}`)}
+                className="btn-primary px-4 py-2 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+              >
+                <IconEdit className="w-3.5 h-3.5" />
+                <span>Edit Coupon</span>
+              </button>
+            )}
+          </div>
+
+          {error && <ErrorBanner message={error} />}
+
+          {loading ? (
+            <GlassCard className="p-12">
+              <LoadingSpinner text="Retrieving coupon voucher..." />
+            </GlassCard>
+          ) : !coupon ? (
+            <GlassCard className="p-8 text-center text-slate-400">
+              Coupon record not found.
+            </GlassCard>
+          ) : (
+            <GlassCard className="p-8 sm:p-10 border-white/10 space-y-6">
+              {/* Promo Banner */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-white/10">
+                <div className="flex items-center gap-4">
+                  <span className="px-4 py-2 rounded-xl bg-purple-500/15 border border-purple-500/30 text-purple-300 font-mono font-black text-xl tracking-wider">
+                    {coupon.code}
+                  </span>
+                  <div>
+                    <p className="text-base font-bold text-white">{discountText}</p>
+                    <p className="text-xs text-slate-400">Promotion Type: {coupon.discountType}</p>
+                  </div>
+                </div>
+
+                <div>
+                  <GlassBadge status={coupon.status} />
+                </div>
+              </div>
+
+              {/* Metrics Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-2 text-xs">
+                <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                  <span className="font-semibold uppercase tracking-wider text-slate-400 block mb-1">
+                    Used Count
+                  </span>
+                  <p className="text-xl font-bold text-white">{coupon.usedCount || 0}</p>
+                  <p className="text-[11px] text-slate-400 mt-1">Times redeemed</p>
+                </div>
+
+                <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                  <span className="font-semibold uppercase tracking-wider text-slate-400 block mb-1">
+                    Remaining Quota
+                  </span>
+                  <p className="text-xl font-bold text-sky-400">{remainingUses}</p>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Cap: {coupon.maxUses || "Unlimited"}
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                  <span className="font-semibold uppercase tracking-wider text-slate-400 block mb-1">
+                    Expiration Date
+                  </span>
+                  <p className="text-sm font-semibold text-white mt-1">
+                    {coupon.expiresAt
+                      ? new Date(coupon.expiresAt).toLocaleDateString("en-IN", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })
+                      : "No Expiration"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Actions Footer */}
+              <div className="pt-6 border-t border-white/10 flex items-center justify-between">
+                <button
+                  onClick={() => navigate("/coupons")}
+                  className="btn-secondary px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer"
+                >
+                  ← Back to Coupons
+                </button>
+              </div>
+            </GlassCard>
+          )}
         </div>
-
-        <div className="flex gap-3">
-          <BackButton />
-
-          <Link
-            to={`/coupons/edit/${coupon.id}`}
-            className="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-gray-800"
-          >
-            Edit Coupon
-          </Link>
-        </div>
-      </div>
-
-      {/* Coupon Summary */}
-      <div className="mb-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <p className="text-sm text-gray-500">
-              Coupon Code
-            </p>
-
-            <h2 className="mt-1 text-2xl font-bold tracking-wide text-gray-900">
-              {coupon.code}
-            </h2>
-          </div>
-
-          <span
-            className={`rounded-full px-3 py-1 text-sm font-medium ${
-              coupon.status === "ACTIVE"
-                ? "bg-green-100 text-green-700"
-                : coupon.status === "EXPIRED"
-                ? "bg-red-100 text-red-700"
-                : "bg-gray-100 text-gray-700"
-            }`}
-          >
-            {coupon.status}
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-
-          <div>
-            <p className="text-sm text-gray-500">
-              Discount
-            </p>
-            <p className="mt-1 text-lg font-semibold text-gray-900">
-              {discountText}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-sm text-gray-500">
-              Discount Type
-            </p>
-            <p className="mt-1 font-medium text-gray-800">
-              {coupon.discountType}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-sm text-gray-500">
-              Maximum Uses
-            </p>
-            <p className="mt-1 font-medium text-gray-800">
-              {coupon.maxUses ?? "Unlimited"}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-sm text-gray-500">
-              Used Count
-            </p>
-            <p className="mt-1 font-medium text-gray-800">
-              {coupon.usedCount}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-sm text-gray-500">
-              Remaining Uses
-            </p>
-            <p className="mt-1 font-medium text-gray-800">
-              {remainingUses}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-sm text-gray-500">
-              Expiry Date
-            </p>
-            <p className="mt-1 font-medium text-gray-800">
-              {formatDate(coupon.expiresAt)}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-sm text-gray-500">
-              Created Date
-            </p>
-            <p className="mt-1 font-medium text-gray-800">
-              {formatDate(coupon.createdAt)}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-sm text-gray-500">
-              Last Updated
-            </p>
-            <p className="mt-1 font-medium text-gray-800">
-              {formatDate(coupon.updatedAt)}
-            </p>
-          </div>
-
-        </div>
-      </div>
-
-      {/* Usage History */}
-      <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
-
-        <div className="border-b border-gray-200 p-6">
-          <h2 className="text-xl font-semibold text-gray-900">
-            Usage History
-          </h2>
-
-          <p className="mt-1 text-sm text-gray-500">
-            Subscriptions where this coupon was applied
-          </p>
-        </div>
-
-        {coupon.subscriptionCoupons &&
-        coupon.subscriptionCoupons.length > 0 ? (
-          <div className="overflow-x-auto">
-
-            <table className="w-full text-left">
-              <thead className="bg-gray-50 text-sm text-gray-500">
-                <tr>
-                  <th className="px-6 py-4">Subscription</th>
-                  <th className="px-6 py-4">Customer</th>
-                  <th className="px-6 py-4">Plan</th>
-                  <th className="px-6 py-4">Applied Date</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {coupon.subscriptionCoupons.map((item) => (
-                  <tr
-                    key={item.id}
-                    className="border-t border-gray-100"
-                  >
-                    <td className="px-6 py-4 font-medium text-gray-800">
-                      #{item.subscriptionId}
-                    </td>
-
-                    <td className="px-6 py-4">
-                      <p className="font-medium text-gray-800">
-                        {item.subscription?.user?.name || "—"}
-                      </p>
-
-                      <p className="text-sm text-gray-500">
-                        {item.subscription?.user?.email || "—"}
-                      </p>
-                    </td>
-
-                    <td className="px-6 py-4 text-gray-700">
-                      {item.subscription?.plan?.name || "—"}
-                    </td>
-
-                    <td className="px-6 py-4 text-gray-600">
-                      {formatDate(item.appliedAt)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-          </div>
-        ) : (
-          <div className="p-10 text-center">
-            <p className="text-gray-500">
-              This coupon has not been used yet.
-            </p>
-          </div>
-        )}
-
-      </div>
+      </main>
     </div>
   );
 }

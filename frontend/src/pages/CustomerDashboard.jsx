@@ -1,7 +1,16 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API_URL from "../api";
-import CustomerLogoutButton from "../components/CustomerLogoutButton";
+import CustomerNavbar from "../components/CustomerNavbar";
+import { AmbientBackground, GlassBadge, GlassCard, LoadingSpinner, ErrorBanner } from "../components/UI";
+import {
+  IconPlans,
+  IconSubscriptions,
+  IconPayments,
+  IconInvoices,
+  IconTrendingUp,
+  IconCreditCard,
+} from "../components/Icons";
 
 function CustomerDashboard() {
   const navigate = useNavigate();
@@ -20,11 +29,13 @@ function CustomerDashboard() {
     }
 
     const user = JSON.parse(storedUser);
-
     setCustomer(user);
 
     const fetchDashboard = async () => {
       try {
+        setLoading(true);
+        setError("");
+
         const response = await fetch(
           `${API_URL}/api/customer-dashboard/${user.id}`
         );
@@ -32,18 +43,13 @@ function CustomerDashboard() {
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(
-            data.message || "Failed to load dashboard"
-          );
+          throw new Error(data.message || "Failed to load dashboard");
         }
 
         setDashboard(data);
-      } catch (error) {
-        console.error("Customer dashboard error:", error);
-
-        setError(
-          error.message || "Unable to load dashboard"
-        );
+      } catch (err) {
+        console.error("Customer dashboard error:", err);
+        setError(err.message || "Unable to load dashboard.");
       } finally {
         setLoading(false);
       }
@@ -52,315 +58,162 @@ function CustomerDashboard() {
     fetchDashboard();
   }, [navigate]);
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <p className="text-sm text-gray-500">
-          Loading dashboard...
-        </p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-        <div className="rounded-xl border border-red-200 bg-white p-8 text-center shadow-sm">
-          <h2 className="text-lg font-semibold text-red-600">
-            Unable to load dashboard
-          </h2>
-
-          <p className="mt-2 text-sm text-gray-500">
-            {error}
-          </p>
-
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-5 rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
-          >
-            Try Again
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   const subscription = dashboard?.subscription;
-
   const currentPlan = subscription?.plan?.name || "No Plan";
-
-  const subscriptionStatus =
-    subscription?.status || "INACTIVE";
-
-  const totalPayments =
-    dashboard?.totalPayments || 0;
-
-  const pendingInvoices =
-    dashboard?.pendingInvoices || 0;
+  const subscriptionStatus = subscription?.status || "INACTIVE";
+  const totalPayments = dashboard?.totalPayments || 0;
+  const pendingInvoices = dashboard?.pendingInvoices || 0;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="relative min-h-screen bg-[#060913] text-slate-100 overflow-x-hidden">
+      <AmbientBackground />
+      <CustomerNavbar />
 
-      {/* ==================== TOPBAR ==================== */}
-
-      <header className="fixed left-0 right-0 top-0 z-10 h-16 border-b border-gray-200 bg-white">
-
-        <div className="flex h-full items-center justify-between px-8">
-
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">
-              SubBill
-            </h1>
-
-            <p className="text-xs text-gray-500">
-              Customer Portal
-            </p>
+      <main className="max-w-7xl mx-auto pt-28 pb-16 px-4 sm:px-8 relative z-10">
+        {/* Welcome Header */}
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-xs font-semibold uppercase tracking-wider text-sky-400 bg-sky-500/10 px-2.5 py-0.5 rounded-full border border-sky-500/20">
+              Customer Workspace
+            </span>
           </div>
+          <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white">
+            Welcome back, {customer?.name || "Customer"}!
+          </h1>
+          <p className="mt-1 text-sm text-slate-400">
+            Monitor active subscriptions, billing statements, and payments
+          </p>
+        </div>
 
-          <div className="flex items-center gap-5">
+        {error && <ErrorBanner message={error} onRetry={() => window.location.reload()} />}
 
-            <div className="text-right">
+        {loading ? (
+          <GlassCard className="p-12">
+            <LoadingSpinner text="Retrieving subscription status..." />
+          </GlassCard>
+        ) : (
+          <div className="space-y-8">
+            {/* 4 Summary Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              {/* Current Plan */}
+              <GlassCard hover className="p-6 border-indigo-500/20">
+                <div className="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase mb-3">
+                  <span>Current Plan</span>
+                  <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                    <IconPlans className="w-4 h-4" />
+                  </div>
+                </div>
+                <h3 className="text-2xl font-black text-white tracking-tight">
+                  {currentPlan}
+                </h3>
+                <p className="mt-1.5 text-xs text-slate-400">
+                  {subscription?.plan
+                    ? `₹${subscription.plan.price} / ${subscription.plan.billingCycle.toLowerCase()}`
+                    : "No active plan assigned"}
+                </p>
+              </GlassCard>
 
-              <p className="text-sm font-medium text-gray-800">
-                {customer?.name || "Customer"}
-              </p>
+              {/* Status */}
+              <GlassCard hover className="p-6 border-sky-500/20">
+                <div className="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase mb-3">
+                  <span>Subscription Status</span>
+                  <div className="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
+                    <IconSubscriptions className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-1">
+                  <GlassBadge status={subscriptionStatus} />
+                </div>
+                <p className="mt-2.5 text-xs text-slate-400">
+                  {subscription ? "Recurring billing enabled" : "Explore plans below"}
+                </p>
+              </GlassCard>
 
-              <p className="text-xs text-gray-500">
-                {customer?.email || ""}
-              </p>
+              {/* Total Paid */}
+              <GlassCard hover className="p-6 border-emerald-500/20">
+                <div className="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase mb-3">
+                  <span>Total Payments</span>
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                    <IconTrendingUp className="w-4 h-4" />
+                  </div>
+                </div>
+                <h3 className="text-2xl font-black text-white tracking-tight">
+                  ₹{Number(totalPayments).toLocaleString("en-IN")}
+                </h3>
+                <p className="mt-1.5 text-xs text-emerald-400 font-medium">
+                  Verified settlements
+                </p>
+              </GlassCard>
 
+              {/* Pending Invoices */}
+              <GlassCard hover className="p-6 border-amber-500/20">
+                <div className="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase mb-3">
+                  <span>Pending Dues</span>
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                    <IconInvoices className="w-4 h-4" />
+                  </div>
+                </div>
+                <h3 className="text-2xl font-black text-amber-300 tracking-tight">
+                  {pendingInvoices}
+                </h3>
+                <p className="mt-1.5 text-xs text-slate-400">
+                  {pendingInvoices > 0 ? "Awaiting your payment" : "All settled up"}
+                </p>
+              </GlassCard>
             </div>
 
-            <CustomerLogoutButton />
+            {/* Quick Navigation Cards */}
+            <div>
+              <h2 className="text-base font-bold text-white mb-4">Quick Service Actions</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <button
+                  onClick={() => navigate("/customer/plans")}
+                  className="glass-card glass-card-hover p-6 rounded-2xl text-left border-white/10 group cursor-pointer"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 mb-4 group-hover:scale-110 transition-transform">
+                    <IconPlans className="w-6 h-6" />
+                  </div>
+                  <h4 className="text-base font-bold text-white">Browse Plans</h4>
+                  <p className="text-xs text-slate-400 mt-1">Upgrade or subscribe to another tier</p>
+                </button>
 
-          </div>
+                <button
+                  onClick={() => navigate("/customer/subscription")}
+                  className="glass-card glass-card-hover p-6 rounded-2xl text-left border-white/10 group cursor-pointer"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-sky-500/15 border border-sky-500/30 flex items-center justify-center text-sky-400 mb-4 group-hover:scale-110 transition-transform">
+                    <IconSubscriptions className="w-6 h-6" />
+                  </div>
+                  <h4 className="text-base font-bold text-white">My Subscription</h4>
+                  <p className="text-xs text-slate-400 mt-1">Manage active plan and renewal dates</p>
+                </button>
 
-        </div>
+                <button
+                  onClick={() => navigate("/customer/invoices")}
+                  className="glass-card glass-card-hover p-6 rounded-2xl text-left border-white/10 group cursor-pointer"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400 mb-4 group-hover:scale-110 transition-transform">
+                    <IconInvoices className="w-6 h-6" />
+                  </div>
+                  <h4 className="text-base font-bold text-white">Billing Invoices</h4>
+                  <p className="text-xs text-slate-400 mt-1">Download and pay open invoices</p>
+                </button>
 
-      </header>
-
-
-      {/* ==================== MAIN CONTENT ==================== */}
-
-      <main className="px-8 pb-10 pt-24">
-
-        {/* Welcome */}
-
-        <div className="mb-8">
-
-          <h2 className="text-3xl font-bold text-gray-900">
-            Welcome back, {customer?.name || "Customer"}!
-          </h2>
-
-          <p className="mt-2 text-gray-500">
-            Manage your subscription, payments and invoices
-            from one place.
-          </p>
-
-        </div>
-
-
-        {/* ==================== SUMMARY CARDS ==================== */}
-
-        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-
-          {/* Current Plan */}
-
-          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-
-            <p className="text-sm font-medium text-gray-500">
-              Current Plan
-            </p>
-
-            <h3 className="mt-3 text-2xl font-bold text-gray-900">
-              {currentPlan}
-            </h3>
-
-            <p className="mt-1 text-sm text-gray-500">
-              {subscription?.plan
-                ? `₹${subscription.plan.price} / ${subscription.plan.billingCycle.toLowerCase()}`
-                : "No active subscription"}
-            </p>
-
-          </div>
-
-
-          {/* Subscription Status */}
-
-          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-
-            <p className="text-sm font-medium text-gray-500">
-              Subscription Status
-            </p>
-
-            <h3 className="mt-3 text-2xl font-bold text-gray-900">
-              {subscriptionStatus}
-            </h3>
-
-            <p className="mt-1 text-sm text-gray-500">
-              {subscription
-                ? "Your subscription is active"
-                : "Subscribe to a plan"}
-            </p>
-
-          </div>
-
-
-          {/* Total Payments */}
-
-          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-
-            <p className="text-sm font-medium text-gray-500">
-              Total Payments
-            </p>
-
-            <h3 className="mt-3 text-2xl font-bold text-gray-900">
-              ₹{totalPayments.toLocaleString("en-IN")}
-            </h3>
-
-            <p className="mt-1 text-sm text-gray-500">
-              Successful payments
-            </p>
-
-          </div>
-
-
-          {/* Pending Invoices */}
-
-          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-
-            <p className="text-sm font-medium text-gray-500">
-              Pending Invoices
-            </p>
-
-            <h3 className="mt-3 text-2xl font-bold text-gray-900">
-              {pendingInvoices}
-            </h3>
-
-            <p className="mt-1 text-sm text-gray-500">
-              Pending or overdue invoices
-            </p>
-
-          </div>
-
-        </div>
-
-
-        {/* ==================== QUICK ACTIONS ==================== */}
-
-        <div className="mt-8 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-
-          <h3 className="text-lg font-semibold text-gray-900">
-            Quick Actions
-          </h3>
-
-          <p className="mt-1 text-sm text-gray-500">
-            Manage your subscription and billing.
-          </p>
-
-
-          <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-
-
-            {/* Browse Plans */}
-
-            <button
-              onClick={() => navigate("/customer/plans")}
-              className="rounded-lg border border-gray-200 p-5 text-left transition hover:border-gray-400 hover:shadow-sm"
-            >
-
-              <div className="text-2xl">
-                📦
+                <button
+                  onClick={() => navigate("/customer/payments")}
+                  className="glass-card glass-card-hover p-6 rounded-2xl text-left border-white/10 group cursor-pointer"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-4 group-hover:scale-110 transition-transform">
+                    <IconCreditCard className="w-6 h-6" />
+                  </div>
+                  <h4 className="text-base font-bold text-white">Payment Receipts</h4>
+                  <p className="text-xs text-slate-400 mt-1">View previous transaction logs</p>
+                </button>
               </div>
-
-              <h4 className="mt-3 font-semibold text-gray-900">
-                Browse Plans
-              </h4>
-
-              <p className="mt-1 text-sm text-gray-500">
-                View available subscription plans.
-              </p>
-
-            </button>
-
-
-            {/* My Subscription */}
-
-            <button
-              onClick={() =>
-                navigate("/customer/subscription")
-              }
-              className="rounded-lg border border-gray-200 p-5 text-left transition hover:border-gray-400 hover:shadow-sm"
-            >
-
-              <div className="text-2xl">
-                🔄
-              </div>
-
-              <h4 className="mt-3 font-semibold text-gray-900">
-                My Subscription
-              </h4>
-
-              <p className="mt-1 text-sm text-gray-500">
-                View and manage your subscription.
-              </p>
-
-            </button>
-
-
-            {/* Payment History */}
-
-            <button
-              onClick={() =>
-                navigate("/customer/payments")
-              }
-              className="rounded-lg border border-gray-200 p-5 text-left transition hover:border-gray-400 hover:shadow-sm"
-            >
-
-              <div className="text-2xl">
-                💳
-              </div>
-
-              <h4 className="mt-3 font-semibold text-gray-900">
-                Payment History
-              </h4>
-
-              <p className="mt-1 text-sm text-gray-500">
-                View your previous payments.
-              </p>
-
-            </button>
-
-
-            {/* Invoices */}
-
-            <button
-              onClick={() =>
-                navigate("/customer/invoices")
-              }
-              className="rounded-lg border border-gray-200 bg-white p-5 text-left transition hover:border-gray-400 hover:shadow-sm"
-            >
-
-              <div className="text-2xl">
-                🧾
-              </div>
-
-              <h4 className="mt-3 font-semibold text-gray-900">
-                My Invoices
-              </h4>
-
-              <p className="mt-1 text-sm text-gray-500">
-                View and manage your invoices.
-              </p>
-
-            </button>
-
+            </div>
           </div>
-
-        </div>
-
+        )}
       </main>
-
     </div>
   );
 }

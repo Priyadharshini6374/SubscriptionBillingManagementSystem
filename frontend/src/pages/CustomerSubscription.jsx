@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+import CustomerNavbar from "../components/CustomerNavbar";
 import BackButton from "../components/BackButton";
-import CustomerLogoutButton from "../components/CustomerLogoutButton";
 import API_URL from "../api";
+import { AmbientBackground, GlassBadge, GlassCard, LoadingSpinner, ErrorBanner, EmptyState } from "../components/UI";
+import { IconSubscriptions, IconPlans, IconCheck, IconEdit } from "../components/Icons";
 
 function CustomerSubscription() {
   const navigate = useNavigate();
@@ -20,7 +22,7 @@ function CustomerSubscription() {
     const fetchSubscription = async () => {
       try {
         if (!customerUser?.id) {
-          setError("Customer information not found.");
+          setError("Customer authentication not found.");
           setLoading(false);
           return;
         }
@@ -30,21 +32,23 @@ function CustomerSubscription() {
         );
 
         if (!response.ok) {
-          throw new Error("Failed to fetch subscription");
+          throw new Error("Failed to fetch subscription records");
         }
 
         const data = await response.json();
 
-        const customerSubscription = data.find(
-          (item) =>
-            item.userId === customerUser.id &&
-            ["ACTIVE", "TRIAL"].includes(item.status)
-        );
+        const activeSub = Array.isArray(data)
+          ? data.find(
+              (item) =>
+                item.userId === customerUser.id &&
+                ["ACTIVE", "TRIAL"].includes(item.status)
+            )
+          : null;
 
-        setSubscription(customerSubscription || null);
+        setSubscription(activeSub || null);
       } catch (err) {
         console.error("Subscription error:", err);
-        setError("Failed to load subscription.");
+        setError(err.message || "Failed to load subscription.");
       } finally {
         setLoading(false);
       }
@@ -53,221 +57,158 @@ function CustomerSubscription() {
     fetchSubscription();
   }, [customerUser?.id]);
 
-  const formatDate = (date) => {
-    if (!date) return "—";
-
-    return new Date(date).toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-8">
-        <p className="text-gray-600">Loading subscription...</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="relative min-h-screen bg-[#060913] text-slate-100 overflow-x-hidden">
+      <AmbientBackground />
+      <CustomerNavbar />
 
-      {/* Header */}
-      <header className="flex items-center justify-between border-b bg-white px-8 py-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            My Subscription
-          </h1>
+      <main className="max-w-4xl mx-auto pt-28 pb-16 px-4 sm:px-8 relative z-10">
+        {/* Header */}
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <BackButton to="/customer/dashboard" />
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
+                <IconSubscriptions className="w-6 h-6 text-sky-400" />
+                My Active Subscription
+              </h1>
+              <p className="mt-1 text-sm text-slate-400">
+                Manage your recurring service plan and renewal terms
+              </p>
+            </div>
+          </div>
 
-          <p className="mt-1 text-sm text-gray-500">
-            Manage your current subscription
-          </p>
+          {subscription && (
+            <div className="flex items-center gap-2.5">
+              <button
+                onClick={() => navigate(`/customer/change-plan/${subscription.id}`)}
+                className="btn-secondary px-3.5 py-2 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+              >
+                <IconEdit className="w-3.5 h-3.5 text-sky-400" />
+                <span>Switch Plan</span>
+              </button>
+
+              <button
+                onClick={() => navigate(`/customer/cancel-subscription/${subscription.id}`)}
+                className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/25 transition cursor-pointer"
+              >
+                Cancel Subscription
+              </button>
+            </div>
+          )}
         </div>
 
-        <CustomerLogoutButton />
-      </header>
+        {error && <ErrorBanner message={error} />}
 
-      <main className="p-8">
-
-        <div className="mb-6">
-          <BackButton />
-        </div>
-
-        {error && (
-          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-600">
-            {error}
-          </div>
-        )}
-
-        {!subscription && !error && (
-          <div className="rounded-xl border border-gray-200 bg-white p-10 text-center shadow-sm">
-
-            <h2 className="text-xl font-semibold text-gray-800">
-              No Active Subscription
-            </h2>
-
-            <p className="mt-2 text-gray-500">
-              You currently do not have an active subscription.
-            </p>
-
-            <button
-              onClick={() => navigate("/customer/plans")}
-              className="mt-6 rounded-lg bg-gray-900 px-6 py-3 text-sm font-medium text-white hover:bg-gray-800"
-            >
-              Browse Plans
-            </button>
-
-          </div>
-        )}
-
-        {subscription && (
-          <div className="max-w-4xl">
-
-            {/* Subscription Overview */}
-            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-
-              <div className="flex items-start justify-between">
-
-                <div>
-                  <p className="text-sm text-gray-500">
-                    Current Plan
-                  </p>
-
-                  <h2 className="mt-1 text-2xl font-bold text-gray-900">
-                    {subscription.plan?.name || "Plan"}
-                  </h2>
-
-                  <p className="mt-2 text-sm text-gray-500">
-                    {subscription.plan?.description ||
-                      "Your current subscription plan"}
-                  </p>
+        {loading ? (
+          <GlassCard className="p-12">
+            <LoadingSpinner text="Retrieving subscription status..." />
+          </GlassCard>
+        ) : !subscription ? (
+          <EmptyState
+            icon={IconSubscriptions}
+            title="No active subscription found"
+            description="You do not currently have an active plan license. Browse our pricing tiers to unlock platform features."
+            actionText="Explore Available Plans"
+            onAction={() => navigate("/customer/plans")}
+          />
+        ) : (
+          <div className="space-y-6">
+            {/* Primary Subscription Card */}
+            <GlassCard className="p-8 border-white/10">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-6 border-b border-white/10">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-2xl bg-sky-500/15 border border-sky-500/30 flex items-center justify-center text-sky-400">
+                    <IconPlans className="w-7 h-7" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2.5">
+                      <h2 className="text-2xl font-bold text-white tracking-tight">
+                        {subscription.plan?.name}
+                      </h2>
+                      <GlassBadge status={subscription.status} />
+                    </div>
+                    <p className="text-xs text-slate-400 mt-1">
+                      {subscription.plan?.description || "Recurring software license"}
+                    </p>
+                  </div>
                 </div>
 
-                <span
-                  className={`rounded-full px-4 py-2 text-sm font-semibold ${
-                    subscription.status === "ACTIVE"
-                      ? "bg-green-100 text-green-700"
-                      : "bg-yellow-100 text-yellow-700"
-                  }`}
-                >
-                  {subscription.status}
-                </span>
-
+                <div className="text-left sm:text-right">
+                  <span className="text-3xl font-extrabold text-white">
+                    ₹{subscription.plan?.price}
+                  </span>
+                  <span className="text-xs text-slate-400 block capitalize">
+                    Per {subscription.plan?.billingCycle?.toLowerCase()}
+                  </span>
+                </div>
               </div>
 
-              {/* Plan Price */}
-              <div className="mt-8 grid grid-cols-1 gap-5 md:grid-cols-3">
-
-                <div className="rounded-lg bg-gray-50 p-5">
-                  <p className="text-sm text-gray-500">
-                    Price
-                  </p>
-
-                  <p className="mt-2 text-xl font-bold text-gray-900">
-                    ₹{Number(subscription.plan?.price || 0).toFixed(2)}
-                  </p>
-                </div>
-
-                <div className="rounded-lg bg-gray-50 p-5">
-                  <p className="text-sm text-gray-500">
-                    Billing Cycle
-                  </p>
-
-                  <p className="mt-2 text-xl font-bold text-gray-900">
-                    {subscription.plan?.billingCycle || "—"}
-                  </p>
-                </div>
-
-                <div className="rounded-lg bg-gray-50 p-5">
-                  <p className="text-sm text-gray-500">
+              {/* Subscription Timeline & Specifications */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-6 text-xs">
+                <div>
+                  <span className="font-semibold uppercase tracking-wider text-slate-400 block mb-1">
                     Subscription ID
-                  </p>
-
-                  <p className="mt-2 text-xl font-bold text-gray-900">
+                  </span>
+                  <p className="font-mono text-sm font-medium text-sky-400">
                     #{subscription.id}
                   </p>
                 </div>
 
-              </div>
-
-              {/* Dates */}
-              <div className="mt-8 border-t border-gray-200 pt-6">
-
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Subscription Details
-                </h3>
-
-                <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-3">
-
-                  <div>
-                    <p className="text-sm text-gray-500">
-                      Start Date
-                    </p>
-
-                    <p className="mt-1 font-medium text-gray-800">
-                      {formatDate(subscription.startDate)}
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-sm text-gray-500">
-                      Next Billing Date
-                    </p>
-
-                    <p className="mt-1 font-medium text-gray-800">
-                      {formatDate(subscription.nextBillingDate)}
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-sm text-gray-500">
-                      End Date
-                    </p>
-
-                    <p className="mt-1 font-medium text-gray-800">
-                      {formatDate(subscription.endDate)}
-                    </p>
-                  </div>
-
+                <div>
+                  <span className="font-semibold uppercase tracking-wider text-slate-400 block mb-1">
+                    Enrolled Date
+                  </span>
+                  <p className="text-sm font-medium text-white">
+                    {new Date(subscription.createdAt).toLocaleDateString("en-IN", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </p>
                 </div>
 
+                <div>
+                  <span className="font-semibold uppercase tracking-wider text-slate-400 block mb-1">
+                    Renewal / Period End
+                  </span>
+                  <p className="text-sm font-medium text-white">
+                    {subscription.currentPeriodEnd
+                      ? new Date(subscription.currentPeriodEnd).toLocaleDateString("en-IN", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })
+                      : "Automatic continuous renewal"}
+                  </p>
+                </div>
               </div>
+            </GlassCard>
 
-              {/* Actions */}
-              <div className="mt-8 flex flex-wrap gap-3 border-t border-gray-200 pt-6">
-
-                {/* Customer Change Plan */}
-                <button
-                  onClick={() =>
-                    navigate(
-                      `/customer/change-plan/${subscription.id}`
-                    )
-                  }
-                  className="rounded-lg bg-gray-900 px-5 py-3 text-sm font-medium text-white hover:bg-gray-800"
-                >
-                  Change Plan
-                </button>
-
-                {/* Customer Cancel Subscription */}
-                <button
-                  onClick={() =>
-                    navigate(
-                      `/customer/cancel-subscription/${subscription.id}`
-                    )
-                  }
-                  className="rounded-lg border border-red-300 bg-red-50 px-5 py-3 text-sm font-medium text-red-600 hover:bg-red-100"
-                >
-                  Cancel Subscription
-                </button>
-
-              </div>
-
-            </div>
+            {/* Plan Entitlements Card */}
+            {subscription.plan && (
+              <GlassCard className="p-6 border-white/10">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">
+                  Plan Entitlements & Features
+                </h3>
+                {Array.isArray(subscription.plan.features) && subscription.plan.features.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {subscription.plan.features.map((feature, i) => (
+                      <div key={i} className="flex items-center gap-2.5 text-xs text-slate-300">
+                        <div className="w-4 h-4 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                          <IconCheck className="w-2.5 h-2.5" />
+                        </div>
+                        <span>{feature}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-500">Standard plan features active.</p>
+                )}
+              </GlassCard>
+            )}
           </div>
         )}
-
       </main>
     </div>
   );

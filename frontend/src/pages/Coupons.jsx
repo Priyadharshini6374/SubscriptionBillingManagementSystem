@@ -4,24 +4,33 @@ import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import BackButton from "../components/BackButton";
 import API_URL from "../api";
+import { AmbientBackground, GlassBadge, GlassCard, LoadingSpinner, ErrorBanner, EmptyState } from "../components/UI";
+import { IconCoupons, IconPlus, IconSearch, IconEye, IconEdit } from "../components/Icons";
 
 function Coupons() {
   const navigate = useNavigate();
 
   const [coupons, setCoupons] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const fetchCoupons = async () => {
     try {
-      const response = await fetch(
-        `${API_URL}/api/coupons`
-      );
+      setLoading(true);
+      setError("");
 
+      const response = await fetch(`${API_URL}/api/coupons`);
       const data = await response.json();
 
-      setCoupons(data);
-    } catch (error) {
-      console.error("Failed to fetch coupons:", error);
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to load coupons");
+      }
+
+      setCoupons(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Failed to fetch coupons:", err);
+      setError(err.message || "Failed to fetch coupons.");
     } finally {
       setLoading(false);
     }
@@ -31,233 +40,163 @@ function Coupons() {
     fetchCoupons();
   }, []);
 
-  const getStatusClass = (status) => {
-    if (status === "ACTIVE") {
-      return "bg-green-100 text-green-700";
-    }
-
-    if (status === "EXPIRED") {
-      return "bg-red-100 text-red-700";
-    }
-
-    return "bg-gray-100 text-gray-700";
-  };
-
   const formatDiscount = (coupon) => {
     if (coupon.discountType === "PERCENTAGE") {
-      return `${Number(coupon.discountValue)}%`;
+      return `${Number(coupon.discountValue)}% OFF`;
     }
-
-    return `₹${Number(coupon.discountValue).toFixed(2)}`;
+    return `₹${Number(coupon.discountValue).toLocaleString("en-IN")} OFF`;
   };
 
-  const formatExpiry = (expiresAt) => {
-    if (!expiresAt) {
-      return "No expiry";
-    }
-
-    return new Date(expiresAt).toLocaleDateString();
-  };
+  const filteredCoupons = coupons.filter((coupon) =>
+    coupon.code?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="relative min-h-screen bg-[#060913] text-slate-100 overflow-x-hidden">
+      <AmbientBackground />
       <Sidebar />
       <Topbar />
 
-      <main className="ml-64 pt-16">
-        <div className="p-8">
-
-          {/* Header */}
-          <div className="mb-6 flex items-center justify-between">
-
+      <main className="lg:ml-64 pt-20 pb-12 px-4 sm:px-8 relative z-10">
+        {/* Header */}
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <BackButton />
             <div>
-              <div className="mb-3">
-                <BackButton />
-              </div>
-
-              <h1 className="text-2xl font-bold text-gray-800">
-                Coupons
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
+                <IconCoupons className="w-6 h-6 text-purple-400" />
+                Coupons & Discounts
               </h1>
-
-              <p className="mt-1 text-sm text-gray-500">
-                Manage discount coupons and promotional offers
+              <p className="mt-1 text-sm text-slate-400">
+                Manage promotional discount vouchers, redemption caps, and validity
               </p>
             </div>
-
-            <button
-              onClick={() => navigate("/coupons/create")}
-              className="rounded-lg bg-gray-900 px-5 py-3 text-sm font-medium text-white hover:bg-gray-800"
-            >
-              + Create Coupon
-            </button>
-
           </div>
 
-          {/* Coupon Table */}
-          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+          <button
+            onClick={() => navigate("/coupons/create")}
+            className="btn-primary px-4 py-2.5 rounded-xl text-xs font-semibold inline-flex items-center gap-2 cursor-pointer"
+          >
+            <IconPlus className="w-4 h-4" />
+            <span>Create Coupon</span>
+          </button>
+        </div>
 
-            {loading ? (
-              <div className="p-10 text-center text-gray-500">
-                Loading coupons...
-              </div>
-            ) : coupons.length === 0 ? (
-              <div className="p-12 text-center">
+        {error && <ErrorBanner message={error} onRetry={fetchCoupons} />}
 
-                <div className="mb-4 text-5xl">
-                  🎟️
-                </div>
+        {/* Search */}
+        <div className="mb-6 max-w-md relative">
+          <IconSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search coupons by promo code..."
+            className="w-full glass-input rounded-xl pl-10 pr-4 py-2.5 text-xs placeholder-slate-500"
+          />
+        </div>
 
-                <h2 className="text-lg font-semibold text-gray-800">
-                  No coupons found
-                </h2>
-
-                <p className="mt-2 text-sm text-gray-500">
-                  Create your first coupon to offer discounts to customers.
-                </p>
-
-                <button
-                  onClick={() => navigate("/coupons/create")}
-                  className="mt-5 rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-gray-800"
-                >
-                  Create Coupon
-                </button>
-
-              </div>
-            ) : (
-              <table className="w-full">
-
-                <thead className="border-b border-gray-200 bg-gray-50">
+        {/* Content Table */}
+        {loading ? (
+          <GlassCard className="p-12">
+            <LoadingSpinner text="Retrieving coupon configurations..." />
+          </GlassCard>
+        ) : coupons.length === 0 ? (
+          <EmptyState
+            icon={IconCoupons}
+            title="No promotional coupons found"
+            description="Create promotional codes with percentage or fixed fee discounts to boost subscription sales."
+            actionText="+ Create Coupon"
+            onAction={() => navigate("/coupons/create")}
+          />
+        ) : filteredCoupons.length === 0 ? (
+          <GlassCard className="p-8 text-center text-sm text-slate-400">
+            No coupons match your search query.
+          </GlassCard>
+        ) : (
+          <GlassCard className="overflow-hidden border-white/10">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="border-b border-white/10 bg-white/[0.02] text-slate-400 uppercase tracking-wider font-semibold">
                   <tr>
-
-                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase text-gray-500">
-                      Coupon
-                    </th>
-
-                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase text-gray-500">
-                      Discount
-                    </th>
-
-                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase text-gray-500">
-                      Usage
-                    </th>
-
-                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase text-gray-500">
-                      Expires
-                    </th>
-
-                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase text-gray-500">
-                      Status
-                    </th>
-
-                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase text-gray-500">
-                      Action
-                    </th>
-
+                    <th className="px-6 py-4">Promo Code</th>
+                    <th className="px-6 py-4">Benefit</th>
+                    <th className="px-6 py-4">Status</th>
+                    <th className="px-6 py-4">Usage Count</th>
+                    <th className="px-6 py-4">Expiration</th>
+                    <th className="px-6 py-4 text-right">Actions</th>
                   </tr>
                 </thead>
-
-                <tbody className="divide-y divide-gray-100">
-
-                  {coupons.map((coupon) => (
+                <tbody className="divide-y divide-white/5">
+                  {filteredCoupons.map((coupon) => (
                     <tr
                       key={coupon.id}
-                      className="hover:bg-gray-50"
+                      className="hover:bg-white/[0.03] transition-colors"
                     >
-
+                      {/* Code */}
                       <td className="px-6 py-4">
-
-                        <p className="text-sm font-bold text-gray-800">
+                        <span className="px-3 py-1.5 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-300 font-mono font-bold tracking-wider text-xs">
                           {coupon.code}
-                        </p>
-
-                        <p className="text-xs text-gray-500">
-                          ID #{coupon.id}
-                        </p>
-
-                      </td>
-
-                      <td className="px-6 py-4">
-
-                        <span className="text-sm font-semibold text-gray-800">
-                          {formatDiscount(coupon)}
                         </span>
-
-                        <p className="text-xs text-gray-500">
-                          {coupon.discountType === "PERCENTAGE"
-                            ? "Percentage"
-                            : "Fixed amount"}
-                        </p>
-
                       </td>
 
+                      {/* Benefit */}
+                      <td className="px-6 py-4 font-bold text-white">
+                        {formatDiscount(coupon)}
+                      </td>
+
+                      {/* Status */}
                       <td className="px-6 py-4">
-
-                        <p className="text-sm text-gray-700">
-                          {coupon.usedCount}
-                          {coupon.maxUses !== null
-                            ? ` / ${coupon.maxUses}`
-                            : " / Unlimited"}
-                        </p>
-
+                        <GlassBadge status={coupon.status} />
                       </td>
 
-                      <td className="px-6 py-4">
-
-                        <p className="text-sm text-gray-600">
-                          {formatExpiry(coupon.expiresAt)}
-                        </p>
-
+                      {/* Usage */}
+                      <td className="px-6 py-4 text-slate-300">
+                        <span className="font-semibold text-white">{coupon.usedCount || 0}</span>
+                        <span className="text-slate-500"> / {coupon.maxUses || "Unlimited"}</span>
                       </td>
 
-                      <td className="px-6 py-4">
-
-                        <span
-                          className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusClass(
-                            coupon.status
-                          )}`}
-                        >
-                          {coupon.status}
-                        </span>
-
+                      {/* Expiration */}
+                      <td className="px-6 py-4 text-slate-400">
+                        {coupon.expiresAt
+                          ? new Date(coupon.expiresAt).toLocaleDateString("en-IN", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })
+                          : "No expiry"}
                       </td>
 
-                      <td className="px-6 py-4">
-
-                        <button
-                          onClick={() =>
-                            navigate(
-                              `/coupons/${coupon.id}`
-                            )
-                          }
-                          className="text-sm font-medium text-blue-600 hover:text-blue-800"
-                        >
-                          View
-                        </button>
-
-                        <button
-                          onClick={() =>
-                            navigate(
-                              `/coupons/edit/${coupon.id}`
-                            )
-                          }
-                          className="ml-4 text-sm font-medium text-gray-600 hover:text-gray-900"
-                        >
-                          Edit
-                        </button>
-
+                      {/* Actions */}
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => navigate(`/coupons/${coupon.id}`)}
+                            className="btn-secondary px-3 py-1.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <IconEye className="w-3.5 h-3.5 text-purple-400" />
+                            <span>Details</span>
+                          </button>
+                          <button
+                            onClick={() => navigate(`/coupons/edit/${coupon.id}`)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition"
+                            title="Edit coupon"
+                          >
+                            <IconEdit className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
-
                     </tr>
                   ))}
-
                 </tbody>
-
               </table>
-            )}
+            </div>
 
-          </div>
-
-        </div>
+            <div className="px-6 py-3 border-t border-white/5 bg-white/[0.01] text-[11px] text-slate-400 flex items-center justify-between">
+              <span>Showing {filteredCoupons.length} of {coupons.length} coupons</span>
+            </div>
+          </GlassCard>
+        )}
       </main>
     </div>
   );

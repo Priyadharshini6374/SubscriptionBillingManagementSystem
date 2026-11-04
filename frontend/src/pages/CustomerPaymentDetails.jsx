@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
+import CustomerNavbar from "../components/CustomerNavbar";
 import BackButton from "../components/BackButton";
-import CustomerLogoutButton from "../components/CustomerLogoutButton";
 import API_URL from "../api";
+import { AmbientBackground, GlassBadge, GlassCard, LoadingSpinner, ErrorBanner } from "../components/UI";
+import { IconPayments } from "../components/Icons";
 
 function CustomerPaymentDetails() {
   const { id } = useParams();
@@ -21,7 +23,7 @@ function CustomerPaymentDetails() {
     const fetchPayment = async () => {
       try {
         if (!customerUser?.id) {
-          setError("Customer information not found.");
+          setError("Customer authentication not found.");
           setLoading(false);
           return;
         }
@@ -33,25 +35,21 @@ function CustomerPaymentDetails() {
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(
-            data.message || "Failed to load payment details."
-          );
+          throw new Error(data.message || "Failed to load payment details.");
         }
 
-        if (data.user?.id !== customerUser.id) {
-          setError(
-            "You are not authorized to view this payment."
-          );
+        const paymentUserId = Number(data.user?.id || data.userId);
+        const loggedInUserId = Number(customerUser.id);
+
+        if (paymentUserId !== loggedInUserId) {
+          setError("You are not authorized to view this payment.");
           return;
         }
 
         setPayment(data);
       } catch (err) {
         console.error("Payment details error:", err);
-
-        setError(
-          err.message || "Failed to load payment details."
-        );
+        setError(err.message || "Failed to load payment details.");
       } finally {
         setLoading(false);
       }
@@ -60,220 +58,113 @@ function CustomerPaymentDetails() {
     fetchPayment();
   }, [id, customerUser?.id]);
 
-  const formatDate = (date) => {
-    if (!date) return "—";
-
-    return new Date(date).toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-  };
-
-  const getStatusClass = (status) => {
-    if (status === "SUCCESS") {
-      return "bg-green-100 text-green-700";
-    }
-
-    if (status === "FAILED") {
-      return "bg-red-100 text-red-700";
-    }
-
-    if (status === "REFUNDED") {
-      return "bg-purple-100 text-purple-700";
-    }
-
-    return "bg-yellow-100 text-yellow-700";
-  };
-
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <p className="text-gray-600">
-          Loading payment details...
-        </p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-8">
-        <BackButton />
-
-        <div className="mt-6 max-w-xl rounded-xl border border-red-200 bg-red-50 p-6">
-          <h2 className="text-lg font-semibold text-red-600">
-            Unable to load payment
-          </h2>
-
-          <p className="mt-2 text-sm text-red-500">
-            {error}
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!payment) {
-    return null;
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="relative min-h-screen bg-[#060913] text-slate-100 overflow-x-hidden">
+      <AmbientBackground />
+      <CustomerNavbar />
 
-      <header className="flex items-center justify-between border-b bg-white px-8 py-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Payment Details
-          </h1>
-
-          <p className="mt-1 text-sm text-gray-500">
-            View your payment transaction details
-          </p>
-        </div>
-
-        <CustomerLogoutButton />
-      </header>
-
-      <main className="p-8">
-
-        <div className="mb-6">
-          <BackButton />
-        </div>
-
-        <div className="max-w-3xl rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
-
-          <div className="flex items-start justify-between border-b border-gray-200 pb-6">
-
+      <main className="max-w-2xl mx-auto pt-28 pb-16 px-4 sm:px-8 relative z-10">
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 print:hidden">
+          <div className="flex items-center gap-4">
+            <BackButton to="/customer/payments" />
             <div>
-              <p className="text-xs font-semibold uppercase text-gray-500">
-                Transaction
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
+                <IconPayments className="w-6 h-6 text-emerald-400" />
+                Payment Receipt
+              </h1>
+              <p className="mt-1 text-sm text-slate-400">
+                Official transaction record #{id}
               </p>
-
-              <h2 className="mt-1 text-2xl font-bold text-gray-900">
-                {payment.transactionId || "—"}
-              </h2>
             </div>
-
-            <span
-              className={`rounded-full px-4 py-2 text-xs font-semibold ${getStatusClass(
-                payment.status
-              )}`}
-            >
-              {payment.status || "—"}
-            </span>
-
           </div>
 
-          <div className="mt-6 grid gap-6 sm:grid-cols-2">
-
-            <div>
-              <p className="text-xs font-semibold uppercase text-gray-500">
-                Amount
-              </p>
-
-              <p className="mt-2 text-lg font-semibold text-gray-900">
-                ₹{Number(payment.amount || 0).toFixed(2)}
-              </p>
-            </div>
-
-            <div>
-              <p className="text-xs font-semibold uppercase text-gray-500">
-                Payment Method
-              </p>
-
-              <p className="mt-2 text-lg font-semibold text-gray-900">
-                {payment.paymentMethod
-                  ? payment.paymentMethod.replace("_", " ")
-                  : "—"}
-              </p>
-            </div>
-
-            <div>
-              <p className="text-xs font-semibold uppercase text-gray-500">
-                Payment Date
-              </p>
-
-              <p className="mt-2 text-sm text-gray-700">
-                {formatDate(payment.paymentDate)}
-              </p>
-            </div>
-
-            <div>
-              <p className="text-xs font-semibold uppercase text-gray-500">
-                Payment ID
-              </p>
-
-              <p className="mt-2 text-sm text-gray-700">
-                #{payment.id}
-              </p>
-            </div>
-
-          </div>
-
-          <div className="mt-8 rounded-lg bg-gray-50 p-5">
-
-            <h3 className="text-sm font-semibold text-gray-900">
-              Invoice Information
-            </h3>
-
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-
-              <div>
-                <p className="text-xs text-gray-500">
-                  Invoice Number
-                </p>
-
-                <p className="mt-1 text-sm font-medium text-gray-800">
-                  {payment.invoice?.invoiceNumber || "—"}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs text-gray-500">
-                  Invoice Amount
-                </p>
-
-                <p className="mt-1 text-sm font-medium text-gray-800">
-                  ₹
-                  {Number(
-                    payment.invoice?.totalAmount || 0
-                  ).toFixed(2)}
-                </p>
-              </div>
-
-            </div>
-
-          </div>
-
-          <div className="mt-8 flex justify-end gap-3 border-t border-gray-200 pt-6">
-
+          {payment && (
             <button
-              onClick={() =>
-                navigate("/customer/payments")
-              }
-              className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              onClick={() => window.print()}
+              className="btn-secondary px-3.5 py-2 rounded-xl text-xs font-semibold cursor-pointer"
             >
-              Back to Payments
+              Print Receipt
             </button>
-
-            {payment.invoice?.id && (
-              <button
-                onClick={() =>
-                  navigate(
-                    `/customer/invoices/${payment.invoice.id}`
-                  )
-                }
-                className="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-gray-800"
-              >
-                View Invoice
-              </button>
-            )}
-
-          </div>
-
+          )}
         </div>
 
+        {error && <ErrorBanner message={error} />}
+
+        {loading ? (
+          <GlassCard className="p-12">
+            <LoadingSpinner text="Retrieving transaction receipt..." />
+          </GlassCard>
+        ) : !payment ? (
+          <GlassCard className="p-8 text-center text-slate-400">
+            Payment receipt unavailable.
+          </GlassCard>
+        ) : (
+          <GlassCard className="p-8 sm:p-10 border-white/10 space-y-6">
+            {/* Amount Banner */}
+            <div className="flex items-center justify-between pb-6 border-b border-white/10">
+              <div>
+                <span className="text-xs uppercase tracking-wider text-slate-400 font-semibold">
+                  Payment Amount
+                </span>
+                <p className="text-3xl font-black text-white mt-1">
+                  ₹{Number(payment.amount).toLocaleString("en-IN")}
+                </p>
+              </div>
+              <div>
+                <GlassBadge status={payment.status} />
+              </div>
+            </div>
+
+            {/* Receipt Specifications */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-xs">
+              <div>
+                <span className="font-semibold uppercase tracking-wider text-slate-400 block mb-1">
+                  Transaction Reference
+                </span>
+                <p className="font-mono text-sm text-indigo-300 bg-white/[0.03] p-2 rounded-lg border border-white/5 inline-block">
+                  {payment.transactionId}
+                </p>
+              </div>
+
+              <div>
+                <span className="font-semibold uppercase tracking-wider text-slate-400 block mb-1">
+                  Payment Gateway
+                </span>
+                <p className="text-sm font-semibold text-white">
+                  {payment.paymentMethod || "UPI"}
+                </p>
+              </div>
+
+              <div>
+                <span className="font-semibold uppercase tracking-wider text-slate-400 block mb-1">
+                  Settlement Date
+                </span>
+                <p className="text-sm text-slate-200">
+                  {new Date(payment.paymentDate).toLocaleString("en-IN")}
+                </p>
+              </div>
+
+              <div>
+                <span className="font-semibold uppercase tracking-wider text-slate-400 block mb-1">
+                  Invoice Settled
+                </span>
+                <p className="text-sm font-mono text-sky-400 font-medium">
+                  {payment.invoice?.invoiceNumber || `Invoice #${payment.invoiceId || "-"}`}
+                </p>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="pt-6 border-t border-white/10 flex items-center justify-between">
+              <button
+                onClick={() => navigate("/customer/payments")}
+                className="btn-secondary px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer"
+              >
+                ← Back to Payments
+              </button>
+            </div>
+          </GlassCard>
+        )}
       </main>
     </div>
   );

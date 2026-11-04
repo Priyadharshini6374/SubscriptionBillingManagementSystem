@@ -5,6 +5,8 @@ import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import BackButton from "../components/BackButton";
 import API_URL from "../api";
+import { AmbientBackground, GlassCard, LoadingSpinner, ErrorBanner } from "../components/UI";
+import { IconPlans } from "../components/Icons";
 
 function EditPlan() {
   const { id } = useParams();
@@ -35,10 +37,7 @@ function EditPlan() {
       setLoading(true);
       setError("");
 
-      const response = await fetch(
-        `${API_URL}/api/plans/${id}`
-      );
-
+      const response = await fetch(`${API_URL}/api/plans/${id}`);
       const data = await response.json();
 
       if (!response.ok) {
@@ -57,13 +56,10 @@ function EditPlan() {
             ? "Yearly"
             : "Monthly",
         trialPeriod: data.trialPeriod ?? 0,
-        features: Array.isArray(data.features)
-          ? data.features.join(", ")
-          : "",
+        features: Array.isArray(data.features) ? data.features.join(", ") : "",
         maxUsers: data.maximumUsers ?? "",
         storage: data.storageLimit ?? "",
-        status:
-          data.status === "INACTIVE" ? "Inactive" : "Active",
+        status: data.status === "INACTIVE" ? "Inactive" : "Active",
       });
     } catch (err) {
       console.error(err);
@@ -75,7 +71,6 @@ function EditPlan() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -99,37 +94,26 @@ function EditPlan() {
     try {
       setSaving(true);
 
-      const response = await fetch(
-        `${API_URL}/api/plans/${id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            name: formData.name.trim(),
-            description: formData.description.trim(),
-            price: Number(formData.price),
-            billingCycle: formData.billingCycle.toUpperCase(),
-            trialPeriod: Number(formData.trialPeriod) || 0,
-
-            features: formData.features
-              .split(",")
-              .map((feature) => feature.trim())
-              .filter(Boolean),
-
-            maximumUsers: formData.maxUsers
-              ? Number(formData.maxUsers)
-              : null,
-
-            storageLimit: formData.storage
-              ? Number(formData.storage)
-              : null,
-
-            status: formData.status.toUpperCase(),
-          }),
-        }
-      );
+      const response = await fetch(`${API_URL}/api/plans/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: formData.name.trim(),
+          description: formData.description.trim(),
+          price: Number(formData.price),
+          billingCycle: formData.billingCycle.toUpperCase(),
+          trialPeriod: Number(formData.trialPeriod) || 0,
+          features: formData.features
+            .split(",")
+            .map((feature) => feature.trim())
+            .filter(Boolean),
+          maximumUsers: formData.maxUsers ? Number(formData.maxUsers) : null,
+          storageLimit: formData.storage ? Number(formData.storage) : null,
+          status: formData.status.toUpperCase(),
+        }),
+      });
 
       const data = await response.json();
 
@@ -137,8 +121,6 @@ function EditPlan() {
         setError(data.message || "Failed to update plan.");
         return;
       }
-
-      alert("Plan updated successfully!");
 
       navigate("/plans");
     } catch (err) {
@@ -149,238 +131,211 @@ function EditPlan() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Sidebar />
-        <Topbar />
-
-        <main className="ml-64 pt-20">
-          <div className="px-8 py-10 text-center">
-            <p className="text-sm text-gray-500">
-              Loading plan...
-            </p>
-          </div>
-        </main>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="relative min-h-screen bg-[#060913] text-slate-100 overflow-x-hidden">
+      <AmbientBackground />
       <Sidebar />
       <Topbar />
 
-      <main className="ml-64 pt-20">
-        <div className="px-8 py-6">
-
+      <main className="lg:ml-64 pt-20 pb-12 px-4 sm:px-8 relative z-10">
+        <div className="max-w-4xl mx-auto">
           {/* Header */}
-          <div className="mb-6 flex items-center gap-4">
-            <BackButton />
-
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Edit Plan
-              </h1>
-
-              <p className="mt-1 text-sm text-gray-500">
-                Update subscription plan details
-              </p>
-            </div>
-          </div>
-
-          {/* Error */}
-          {error && (
-            <div className="mb-6 max-w-4xl rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-              {error}
-            </div>
-          )}
-
-          {/* Form */}
-          <div className="max-w-4xl rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
-
-            <form onSubmit={handleSubmit}>
-
-              {/* Plan Name */}
-              <div className="mb-5">
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  Plan Name *
-                </label>
-
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none focus:border-gray-500"
-                />
-              </div>
-
-              {/* Description */}
-              <div className="mb-5">
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  Description
-                </label>
-
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleChange}
-                  rows="3"
-                  className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none focus:border-gray-500"
-                />
-              </div>
-
-              {/* Price + Billing */}
-              <div className="mb-5 grid grid-cols-1 gap-5 md:grid-cols-2">
-
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Price (₹) *
-                  </label>
-
-                  <input
-                    type="number"
-                    name="price"
-                    value={formData.price}
-                    onChange={handleChange}
-                    min="0"
-                    step="0.01"
-                    className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none focus:border-gray-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Billing Cycle *
-                  </label>
-
-                  <select
-                    name="billingCycle"
-                    value={formData.billingCycle}
-                    onChange={handleChange}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm outline-none focus:border-gray-500"
-                  >
-                    <option value="Monthly">Monthly</option>
-                    <option value="Quarterly">Quarterly</option>
-                    <option value="Yearly">Yearly</option>
-                  </select>
-                </div>
-
-              </div>
-
-              {/* Trial */}
-              <div className="mb-5">
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  Trial Period (Days)
-                </label>
-
-                <input
-                  type="number"
-                  name="trialPeriod"
-                  value={formData.trialPeriod}
-                  onChange={handleChange}
-                  min="0"
-                  className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none focus:border-gray-500"
-                />
-              </div>
-
-              {/* Features */}
-              <div className="mb-5">
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  Features
-                </label>
-
-                <input
-                  type="text"
-                  name="features"
-                  value={formData.features}
-                  onChange={handleChange}
-                  placeholder="5 Projects, Basic Support"
-                  className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none focus:border-gray-500"
-                />
-
-                <p className="mt-1 text-xs text-gray-500">
-                  Separate features using commas.
+          <div className="mb-8 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <BackButton to="/plans" />
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
+                  <IconPlans className="w-6 h-6 text-indigo-400" />
+                  Edit Plan #{id}
+                </h1>
+                <p className="mt-1 text-sm text-slate-400">
+                  Update subscription pricing, quotas, and availability
                 </p>
               </div>
-
-              {/* Users + Storage */}
-              <div className="mb-5 grid grid-cols-1 gap-5 md:grid-cols-2">
-
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Maximum Users
-                  </label>
-
-                  <input
-                    type="number"
-                    name="maxUsers"
-                    value={formData.maxUsers}
-                    onChange={handleChange}
-                    min="1"
-                    className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none focus:border-gray-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Storage Limit (GB)
-                  </label>
-
-                  <input
-                    type="number"
-                    name="storage"
-                    value={formData.storage}
-                    onChange={handleChange}
-                    min="1"
-                    className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none focus:border-gray-500"
-                  />
-                </div>
-
-              </div>
-
-              {/* Status */}
-              <div className="mb-8">
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  Status
-                </label>
-
-                <select
-                  name="status"
-                  value={formData.status}
-                  onChange={handleChange}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm outline-none focus:border-gray-500"
-                >
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
-                </select>
-              </div>
-
-              {/* Buttons */}
-              <div className="flex justify-end gap-3 border-t border-gray-200 pt-6">
-
-                <button
-                  type="button"
-                  onClick={() => navigate("/plans")}
-                  className="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {saving ? "Saving..." : "Save Changes"}
-                </button>
-
-              </div>
-
-            </form>
-
+            </div>
           </div>
+
+          {error && <ErrorBanner message={error} />}
+
+          {loading ? (
+            <GlassCard className="p-12">
+              <LoadingSpinner text="Loading plan details..." />
+            </GlassCard>
+          ) : (
+            <GlassCard className="p-8 sm:p-10 border-white/10">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Plan Name */}
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+                      Plan Name <span className="text-rose-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      placeholder="e.g. Enterprise Pro"
+                      className="w-full glass-input rounded-xl px-4 py-3 text-sm placeholder-slate-500"
+                      required
+                    />
+                  </div>
+
+                  {/* Description */}
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+                      Description
+                    </label>
+                    <textarea
+                      name="description"
+                      value={formData.description}
+                      onChange={handleChange}
+                      rows="3"
+                      placeholder="Plan description and details"
+                      className="w-full glass-input rounded-xl px-4 py-3 text-sm placeholder-slate-500"
+                    />
+                  </div>
+
+                  {/* Price */}
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+                      Price (INR ₹) <span className="text-rose-400">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      name="price"
+                      value={formData.price}
+                      onChange={handleChange}
+                      min="0"
+                      step="any"
+                      className="w-full glass-input rounded-xl px-4 py-3 text-sm placeholder-slate-500"
+                      required
+                    />
+                  </div>
+
+                  {/* Billing Cycle */}
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+                      Billing Cycle
+                    </label>
+                    <select
+                      name="billingCycle"
+                      value={formData.billingCycle}
+                      onChange={handleChange}
+                      className="w-full glass-input rounded-xl px-4 py-3 text-sm"
+                    >
+                      <option value="Monthly" className="bg-slate-900 text-white">Monthly</option>
+                      <option value="Quarterly" className="bg-slate-900 text-white">Quarterly</option>
+                      <option value="Yearly" className="bg-slate-900 text-white">Yearly</option>
+                    </select>
+                  </div>
+
+                  {/* Trial Period */}
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+                      Trial Period (Days)
+                    </label>
+                    <input
+                      type="number"
+                      name="trialPeriod"
+                      value={formData.trialPeriod}
+                      onChange={handleChange}
+                      min="0"
+                      className="w-full glass-input rounded-xl px-4 py-3 text-sm placeholder-slate-500"
+                    />
+                  </div>
+
+                  {/* Status */}
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+                      Status
+                    </label>
+                    <select
+                      name="status"
+                      value={formData.status}
+                      onChange={handleChange}
+                      className="w-full glass-input rounded-xl px-4 py-3 text-sm"
+                    >
+                      <option value="Active" className="bg-slate-900 text-white">Active</option>
+                      <option value="Inactive" className="bg-slate-900 text-white">Inactive</option>
+                    </select>
+                  </div>
+
+                  {/* Max Users */}
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+                      Maximum Users
+                    </label>
+                    <input
+                      type="number"
+                      name="maxUsers"
+                      value={formData.maxUsers}
+                      onChange={handleChange}
+                      min="1"
+                      placeholder="Unlimited"
+                      className="w-full glass-input rounded-xl px-4 py-3 text-sm placeholder-slate-500"
+                    />
+                  </div>
+
+                  {/* Storage Limit */}
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+                      Storage Limit in GB
+                    </label>
+                    <input
+                      type="number"
+                      name="storage"
+                      value={formData.storage}
+                      onChange={handleChange}
+                      min="0"
+                      placeholder="Unlimited"
+                      className="w-full glass-input rounded-xl px-4 py-3 text-sm placeholder-slate-500"
+                    />
+                  </div>
+
+                  {/* Features */}
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+                      Features List (Separated by commas)
+                    </label>
+                    <input
+                      type="text"
+                      name="features"
+                      value={formData.features}
+                      onChange={handleChange}
+                      placeholder="e.g. Priority Support, Custom Integrations"
+                      className="w-full glass-input rounded-xl px-4 py-3 text-sm placeholder-slate-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="pt-6 border-t border-white/10 flex items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => navigate("/plans")}
+                    className="btn-secondary px-5 py-2.5 rounded-xl text-xs font-semibold"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="btn-primary px-6 py-2.5 rounded-xl text-xs font-semibold inline-flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {saving ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span>Saving...</span>
+                      </>
+                    ) : (
+                      <span>Save Changes</span>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </GlassCard>
+          )}
         </div>
       </main>
     </div>

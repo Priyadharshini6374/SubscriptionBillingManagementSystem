@@ -5,32 +5,36 @@ import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import BackButton from "../components/BackButton";
 import API_URL from "../api";
+import { AmbientBackground, GlassBadge, GlassCard, LoadingSpinner, ErrorBanner, EmptyState } from "../components/UI";
+import { IconRefunds, IconPlus, IconSearch, IconEye } from "../components/Icons";
 
 function Refunds() {
   const navigate = useNavigate();
 
   const [refunds, setRefunds] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const fetchRefunds = () => {
     setLoading(true);
+    setError("");
 
     fetch(`${API_URL}/api/refunds`)
       .then((response) => {
         if (!response.ok) {
           throw new Error("Failed to fetch refunds");
         }
-
         return response.json();
       })
       .then((data) => {
-        setRefunds(data);
+        setRefunds(Array.isArray(data) ? data : []);
         setLoading(false);
       })
-      .catch((error) => {
-        console.error(error);
-        setError("Unable to load refunds");
+      .catch((err) => {
+        console.error(err);
+        setError("Unable to load refunds ledger.");
         setLoading(false);
       });
   };
@@ -39,234 +43,175 @@ function Refunds() {
     fetchRefunds();
   }, []);
 
-  const formatDate = (date) => {
-    return new Date(date).toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-  };
+  const filteredRefunds = refunds.filter((refund) => {
+    const custName = refund.payment?.user?.name?.toLowerCase() || "";
+    const txId = refund.payment?.transactionId?.toLowerCase() || "";
+    const reason = refund.reason?.toLowerCase() || "";
 
-  const getStatusStyle = (status) => {
-    if (status === "COMPLETED") {
-      return "bg-green-100 text-green-700";
-    }
+    const matchesSearch =
+      custName.includes(searchTerm.toLowerCase()) ||
+      txId.includes(searchTerm.toLowerCase()) ||
+      reason.includes(searchTerm.toLowerCase());
 
-    if (status === "PROCESSING") {
-      return "bg-yellow-100 text-yellow-700";
-    }
+    const matchesStatus =
+      statusFilter === "ALL" || refund.status === statusFilter;
 
-    if (status === "FAILED") {
-      return "bg-red-100 text-red-700";
-    }
-
-    return "bg-gray-100 text-gray-700";
-  };
+    return matchesSearch && matchesStatus;
+  });
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="relative min-h-screen bg-[#060913] text-slate-100 overflow-x-hidden">
+      <AmbientBackground />
       <Sidebar />
       <Topbar />
 
-      <main className="ml-64 pt-16">
-        <div className="p-8">
-
-          {/* Header */}
-          <div className="mb-6 flex items-center justify-between">
-
-            <div className="flex items-center gap-4">
-              <BackButton />
-
-              <div>
-                <h1 className="text-2xl font-bold text-gray-800">
-                  Refunds
-                </h1>
-
-                <p className="mt-1 text-sm text-gray-500">
-                  Manage customer payment refunds
-                </p>
-              </div>
-            </div>
-
-            <button
-              onClick={() => navigate("/refunds/create")}
-              className="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-gray-800"
-            >
-              + Process Refund
-            </button>
-
-          </div>
-
-          {/* Error */}
-          {error && (
-            <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4">
-              <p className="font-medium text-red-700">
-                {error}
+      <main className="lg:ml-64 pt-20 pb-12 px-4 sm:px-8 relative z-10">
+        {/* Header */}
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <BackButton />
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
+                <IconRefunds className="w-6 h-6 text-purple-400" />
+                Refunds & Reversals
+              </h1>
+              <p className="mt-1 text-sm text-slate-400">
+                Process dispute resolutions, credit notes, and payment clawbacks
               </p>
             </div>
-          )}
-
-          {/* Refund Table */}
-          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-
-            <div className="flex items-center justify-between border-b border-gray-200 px-6 py-5">
-
-              <div>
-                <h2 className="text-lg font-semibold text-gray-800">
-                  Refund History
-                </h2>
-
-                <p className="mt-1 text-sm text-gray-500">
-                  All refund transactions
-                </p>
-              </div>
-
-              <button
-                onClick={fetchRefunds}
-                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                Refresh
-              </button>
-
-            </div>
-
-            {loading ? (
-              <div className="p-8 text-center">
-                <p className="text-gray-500">
-                  Loading refunds...
-                </p>
-              </div>
-            ) : refunds.length === 0 ? (
-              <div className="p-12 text-center">
-
-                <div className="text-5xl">
-                  ↩️
-                </div>
-
-                <h3 className="mt-4 text-lg font-semibold text-gray-800">
-                  No refunds yet
-                </h3>
-
-                <p className="mt-1 text-sm text-gray-500">
-                  Refunds will appear here after a payment is refunded.
-                </p>
-
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-
-                <table className="w-full">
-
-                  <thead className="bg-gray-50">
-                    <tr>
-
-                      <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        Customer
-                      </th>
-
-                      <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        Transaction
-                      </th>
-
-                      <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        Invoice
-                      </th>
-
-                      <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        Amount
-                      </th>
-
-                      <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        Status
-                      </th>
-
-                      <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        Date
-                      </th>
-
-                      <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        Action
-                      </th>
-
-                    </tr>
-                  </thead>
-
-                  <tbody className="divide-y divide-gray-200">
-
-                    {refunds.map((refund) => (
-                      <tr
-                        key={refund.id}
-                        className="hover:bg-gray-50"
-                      >
-
-                        <td className="px-6 py-4">
-
-                          <div>
-                            <p className="font-medium text-gray-800">
-                              {refund.user?.name || "Unknown"}
-                            </p>
-
-                            <p className="text-sm text-gray-500">
-                              {refund.user?.email || "-"}
-                            </p>
-                          </div>
-
-                        </td>
-
-                        <td className="px-6 py-4 text-sm text-gray-700">
-                          {refund.payment?.transactionId || "-"}
-                        </td>
-
-                        <td className="px-6 py-4 text-sm text-gray-700">
-                          {refund.payment?.invoice?.invoiceNumber || "-"}
-                        </td>
-
-                        <td className="px-6 py-4 font-medium text-gray-800">
-                          ₹{Number(refund.amount).toFixed(2)}
-                        </td>
-
-                        <td className="px-6 py-4">
-
-                          <span
-                            className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusStyle(
-                              refund.status
-                            )}`}
-                          >
-                            {refund.status}
-                          </span>
-
-                        </td>
-
-                        <td className="px-6 py-4 text-sm text-gray-600">
-                          {formatDate(refund.refundDate)}
-                        </td>
-
-                        <td className="px-6 py-4 text-right">
-
-                          <button
-                            onClick={() =>
-                              navigate(`/refunds/${refund.id}`)
-                            }
-                            className="font-medium text-indigo-600 hover:text-indigo-800"
-                          >
-                            View
-                          </button>
-
-                        </td>
-
-                      </tr>
-                    ))}
-
-                  </tbody>
-
-                </table>
-
-              </div>
-            )}
-
           </div>
 
+          <button
+            onClick={() => navigate("/refunds/create")}
+            className="btn-primary px-4 py-2.5 rounded-xl text-xs font-semibold inline-flex items-center gap-2 cursor-pointer"
+          >
+            <IconPlus className="w-4 h-4" />
+            <span>Process Refund</span>
+          </button>
         </div>
+
+        {error && <ErrorBanner message={error} onRetry={fetchRefunds} />}
+
+        {/* Search & Filter Bar */}
+        <div className="mb-6 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <div className="relative flex-1">
+            <IconSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by customer, transaction ID, or refund reason..."
+              className="w-full glass-input rounded-xl pl-10 pr-4 py-2.5 text-xs placeholder-slate-500"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="glass-input rounded-xl px-3 py-2.5 text-xs font-medium cursor-pointer"
+            >
+              <option value="ALL" className="bg-slate-900 text-white">All Refund Statuses</option>
+              <option value="COMPLETED" className="bg-slate-900 text-white">Completed</option>
+              <option value="PROCESSING" className="bg-slate-900 text-white">Processing</option>
+              <option value="FAILED" className="bg-slate-900 text-white">Failed</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Content Table */}
+        {loading ? (
+          <GlassCard className="p-12">
+            <LoadingSpinner text="Retrieving refund records..." />
+          </GlassCard>
+        ) : refunds.length === 0 ? (
+          <EmptyState
+            icon={IconRefunds}
+            title="No refunds issued"
+            description="All payment transactions remain settled with zero reversals."
+            actionText="+ Process Refund"
+            onAction={() => navigate("/refunds/create")}
+          />
+        ) : filteredRefunds.length === 0 ? (
+          <GlassCard className="p-8 text-center text-sm text-slate-400">
+            No refunds match your current filters.
+          </GlassCard>
+        ) : (
+          <GlassCard className="overflow-hidden border-white/10">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="border-b border-white/10 bg-white/[0.02] text-slate-400 uppercase tracking-wider font-semibold">
+                  <tr>
+                    <th className="px-6 py-4">Customer</th>
+                    <th className="px-6 py-4">Transaction ID</th>
+                    <th className="px-6 py-4">Reason</th>
+                    <th className="px-6 py-4">Status</th>
+                    <th className="px-6 py-4 text-right">Refund Amount</th>
+                    <th className="px-6 py-4">Date</th>
+                    <th className="px-6 py-4 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {filteredRefunds.map((refund) => (
+                    <tr
+                      key={refund.id}
+                      className="hover:bg-white/[0.03] transition-colors"
+                    >
+                      {/* Customer */}
+                      <td className="px-6 py-4 font-semibold text-white">
+                        {refund.payment?.user?.name || "Customer"}
+                      </td>
+
+                      {/* Transaction ID */}
+                      <td className="px-6 py-4 font-mono text-slate-300">
+                        {refund.payment?.transactionId || "-"}
+                      </td>
+
+                      {/* Reason */}
+                      <td className="px-6 py-4 text-slate-400 max-w-xs truncate">
+                        {refund.reason || "Customer requested refund"}
+                      </td>
+
+                      {/* Status */}
+                      <td className="px-6 py-4">
+                        <GlassBadge status={refund.status} />
+                      </td>
+
+                      {/* Refund Amount */}
+                      <td className="px-6 py-4 text-right font-bold text-rose-300">
+                        ₹{Number(refund.amount).toLocaleString("en-IN")}
+                      </td>
+
+                      {/* Date */}
+                      <td className="px-6 py-4 text-slate-400">
+                        {new Date(refund.refundDate).toLocaleDateString("en-IN", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </td>
+
+                      {/* Action */}
+                      <td className="px-6 py-4 text-right">
+                        <button
+                          onClick={() => navigate(`/refunds/${refund.id}`)}
+                          className="btn-secondary px-3 py-1.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <IconEye className="w-3.5 h-3.5 text-purple-400" />
+                          <span>View</span>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="px-6 py-3 border-t border-white/5 bg-white/[0.01] text-[11px] text-slate-400 flex items-center justify-between">
+              <span>Showing {filteredRefunds.length} of {refunds.length} refund entries</span>
+            </div>
+          </GlassCard>
+        )}
       </main>
     </div>
   );

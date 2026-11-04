@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import API_URL from "../api";
-
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import BackButton from "../components/BackButton";
+import { AmbientBackground, GlassBadge, GlassCard, LoadingSpinner, ErrorBanner } from "../components/UI";
+import { IconCustomers, IconEdit, IconSubscriptions } from "../components/Icons";
 
 function CustomerDetails() {
   const { id } = useParams();
@@ -24,10 +25,7 @@ function CustomerDetails() {
       setLoading(true);
       setError("");
 
-      const response = await fetch(
-        `${API_URL}/api/customers/${id}`
-      );
-
+      const response = await fetch(`${API_URL}/api/customers/${id}`);
       const data = await response.json();
 
       if (!response.ok) {
@@ -44,186 +42,138 @@ function CustomerDetails() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Sidebar />
-        <Topbar />
-
-        <main className="ml-64 pt-20">
-          <div className="px-8 py-10 text-center">
-            <p className="text-sm text-gray-500">
-              Loading customer...
-            </p>
-          </div>
-        </main>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="relative min-h-screen bg-[#060913] text-slate-100 overflow-x-hidden">
+      <AmbientBackground />
       <Sidebar />
       <Topbar />
 
-      <main className="ml-64 pt-20">
-        <div className="px-8 py-6">
-
-          <div className="mb-6 flex items-center gap-4">
-            <BackButton />
-
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Customer Details
-              </h1>
-
-              <p className="mt-1 text-sm text-gray-500">
-                View customer information
-              </p>
+      <main className="lg:ml-64 pt-20 pb-12 px-4 sm:px-8 relative z-10">
+        <div className="max-w-4xl mx-auto">
+          {/* Header */}
+          <div className="mb-8 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <BackButton to="/customers" />
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
+                  <IconCustomers className="w-6 h-6 text-sky-400" />
+                  Customer Profile
+                </h1>
+                <p className="mt-1 text-sm text-slate-400">
+                  Account telemetry, billing identity, and assigned licenses
+                </p>
+              </div>
             </div>
+
+            {customer && (
+              <button
+                onClick={() => navigate(`/customers/edit/${customer.id}`)}
+                className="btn-primary px-4 py-2 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+              >
+                <IconEdit className="w-3.5 h-3.5" />
+                <span>Edit Profile</span>
+              </button>
+            )}
           </div>
 
-          {error && (
-            <div className="max-w-3xl rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-              {error}
-            </div>
-          )}
+          {error && <ErrorBanner message={error} onRetry={fetchCustomer} />}
 
-          {!error && customer && (
-            <div className="max-w-3xl">
-
-              {/* Customer Profile */}
-              <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
-
-                <div className="flex items-center gap-5 border-b border-gray-200 pb-6">
-
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-900 text-xl font-semibold text-white">
-                    {customer.name
-                      .charAt(0)
-                      .toUpperCase()}
+          {loading ? (
+            <GlassCard className="p-12">
+              <LoadingSpinner text="Retrieving customer record..." />
+            </GlassCard>
+          ) : !customer ? (
+            <GlassCard className="p-8 text-center text-slate-400">
+              Customer not found.
+            </GlassCard>
+          ) : (
+            <div className="space-y-6">
+              {/* Profile Card */}
+              <GlassCard className="p-8 border-white/10">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-6 border-b border-white/10">
+                  <div className="flex items-center gap-5">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-sky-500 via-indigo-600 to-purple-600 flex items-center justify-center text-2xl font-black text-white border border-white/20 shadow-lg">
+                      {customer.name?.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-white tracking-tight">
+                        {customer.name}
+                      </h2>
+                      <p className="text-xs text-slate-400 font-mono mt-0.5">
+                        Customer ID: #{customer.id}
+                      </p>
+                    </div>
                   </div>
 
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900">
-                      {customer.name}
-                    </h2>
-
-                    <p className="mt-1 text-sm text-gray-500">
-                      Customer ID: #{customer.id}
-                    </p>
+                    <GlassBadge status={customer.status} />
                   </div>
-
-                  <span
-                    className={`ml-auto rounded-full px-3 py-1 text-xs font-medium ${
-                      customer.status === "ACTIVE"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-gray-100 text-gray-600"
-                    }`}
-                  >
-                    {customer.status}
-                  </span>
-
                 </div>
 
-                {/* Information */}
-                <div className="mt-6 space-y-5">
-
+                {/* Details Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-6">
                   <div>
-                    <p className="text-xs font-semibold uppercase text-gray-500">
-                      Full Name
-                    </p>
-
-                    <p className="mt-1 text-sm text-gray-900">
-                      {customer.name}
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-xs font-semibold uppercase text-gray-500">
-                      Email
-                    </p>
-
-                    <p className="mt-1 text-sm text-gray-900">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                      Email Address
+                    </span>
+                    <p className="mt-1 text-sm font-medium text-white truncate">
                       {customer.email}
                     </p>
                   </div>
 
                   <div>
-                    <p className="text-xs font-semibold uppercase text-gray-500">
-                      Role
-                    </p>
-
-                    <p className="mt-1 text-sm text-gray-900">
-                      {customer.role}
+                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                      User Role
+                    </span>
+                    <p className="mt-1 text-sm font-medium text-indigo-300">
+                      {customer.role || "CUSTOMER"}
                     </p>
                   </div>
 
                   <div>
-                    <p className="text-xs font-semibold uppercase text-gray-500">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                       Account Status
-                    </p>
-
-                    <p className="mt-1 text-sm text-gray-900">
+                    </span>
+                    <p className="mt-1 text-sm font-medium text-white">
                       {customer.status}
                     </p>
                   </div>
 
                   <div>
-                    <p className="text-xs font-semibold uppercase text-gray-500">
-                      Joined Date
-                    </p>
-
-                    <p className="mt-1 text-sm text-gray-900">
-                      {new Date(
-                        customer.createdAt
-                      ).toLocaleDateString()}
+                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                      Joined On
+                    </span>
+                    <p className="mt-1 text-sm font-medium text-slate-300">
+                      {new Date(customer.createdAt).toLocaleDateString("en-IN", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })}
                     </p>
                   </div>
-
                 </div>
+              </GlassCard>
 
-                {/* Actions */}
-                <div className="mt-8 flex justify-end gap-3 border-t border-gray-200 pt-6">
-
-                  <button
-                    type="button"
-                    onClick={() => navigate("/customers")}
-                    className="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                  >
-                    Back to Customers
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      navigate(`/customers/edit/${customer.id}`)
-                    }
-                    className="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-gray-800"
-                  >
-                    Edit Customer
-                  </button>
-
+              {/* Quick Actions / Link to Subscriptions */}
+              <GlassCard className="p-6 border-white/10 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                    <IconSubscriptions className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white">Customer Subscriptions</h3>
+                    <p className="text-xs text-slate-400">Manage plan allocations and billing statements for this customer</p>
+                  </div>
                 </div>
-
-              </div>
-
-              {/* Subscription Section */}
-              <div className="mt-6 rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
-
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Subscription
-                </h2>
-
-                <p className="mt-2 text-sm text-gray-500">
-                  Subscription details will appear here after the
-                  subscription module is implemented.
-                </p>
-
-              </div>
-
+                <button
+                  onClick={() => navigate("/subscriptions")}
+                  className="btn-secondary px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer"
+                >
+                  View All Subscriptions →
+                </button>
+              </GlassCard>
             </div>
           )}
-
         </div>
       </main>
     </div>

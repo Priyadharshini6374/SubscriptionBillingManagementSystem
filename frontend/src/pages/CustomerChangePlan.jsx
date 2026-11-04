@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import API_URL from "../api";
-
+import CustomerNavbar from "../components/CustomerNavbar";
 import BackButton from "../components/BackButton";
-import CustomerLogoutButton from "../components/CustomerLogoutButton";
+import { AmbientBackground, GlassCard, LoadingSpinner, ErrorBanner } from "../components/UI";
+import { IconSubscriptions } from "../components/Icons";
 
 function CustomerChangePlan() {
   const { id } = useParams();
@@ -20,35 +21,28 @@ function CustomerChangePlan() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [subscriptionResponse, plansResponse] =
-          await Promise.all([
-            fetch(
-              `${API_URL}/api/subscriptions/${id}`
-            ),
-            fetch(`${API_URL}/api/plans`),
-          ]);
+        const [subscriptionResponse, plansResponse] = await Promise.all([
+          fetch(`${API_URL}/api/subscriptions/${id}`),
+          fetch(`${API_URL}/api/plans`),
+        ]);
 
         if (!subscriptionResponse.ok || !plansResponse.ok) {
-          throw new Error("Failed to load data");
+          throw new Error("Failed to load subscription data");
         }
 
-        const subscriptionData =
-          await subscriptionResponse.json();
-
+        const subscriptionData = await subscriptionResponse.json();
         const plansData = await plansResponse.json();
 
         setSubscription(subscriptionData);
 
-        const activePlans = plansData.filter(
-          (plan) => plan.status === "ACTIVE"
-        );
+        const activePlans = Array.isArray(plansData)
+          ? plansData.filter((plan) => plan.status === "ACTIVE")
+          : [];
 
         setPlans(activePlans);
 
         if (subscriptionData.plan?.id) {
-          setSelectedPlan(
-            String(subscriptionData.plan.id)
-          );
+          setSelectedPlan(String(subscriptionData.plan.id));
         }
       } catch (err) {
         console.error("Change plan error:", err);
@@ -67,10 +61,7 @@ function CustomerChangePlan() {
       return;
     }
 
-    if (
-      Number(selectedPlan) ===
-      Number(subscription?.plan?.id)
-    ) {
+    if (Number(selectedPlan) === Number(subscription?.plan?.id)) {
       setError("Please select a different plan.");
       return;
     }
@@ -88,6 +79,7 @@ function CustomerChangePlan() {
           },
           body: JSON.stringify({
             planId: Number(selectedPlan),
+            newPlanId: Number(selectedPlan),
           }),
         }
       );
@@ -95,208 +87,121 @@ function CustomerChangePlan() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.message || "Failed to change plan"
-        );
+        throw new Error(data.message || "Failed to change subscription plan.");
       }
-
-      alert("Plan changed successfully!");
 
       navigate("/customer/subscription");
     } catch (err) {
-      console.error("Change plan error:", err);
-      setError(err.message);
+      console.error(err);
+      setError(err.message || "Failed to update plan.");
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-8">
-        <p className="text-gray-600">
-          Loading subscription...
-        </p>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="relative min-h-screen bg-[#060913] text-slate-100 overflow-x-hidden">
+      <AmbientBackground />
+      <CustomerNavbar />
 
-      {/* Header */}
-      <header className="flex items-center justify-between border-b bg-white px-8 py-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Change Plan
-          </h1>
-
-          <p className="mt-1 text-sm text-gray-500">
-            Choose a different subscription plan
-          </p>
-        </div>
-
-        <CustomerLogoutButton />
-      </header>
-
-      <main className="p-8">
-
-        <div className="mb-6">
-          <BackButton />
-        </div>
-
-        {error && (
-          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-600">
-            {error}
-          </div>
-        )}
-
-        {subscription && (
-          <div className="max-w-5xl">
-
-            {/* Current Plan */}
-            <div className="mb-8 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-
-              <p className="text-sm text-gray-500">
-                Current Plan
-              </p>
-
-              <div className="mt-2 flex items-center justify-between">
-
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900">
-                    {subscription.plan?.name}
-                  </h2>
-
-                  <p className="mt-1 text-sm text-gray-500">
-                    ₹
-                    {Number(
-                      subscription.plan?.price || 0
-                    ).toFixed(2)}{" "}
-                    / {subscription.plan?.billingCycle}
-                  </p>
-                </div>
-
-                <span className="rounded-full bg-green-100 px-4 py-2 text-sm font-semibold text-green-700">
-                  {subscription.status}
-                </span>
-
-              </div>
-            </div>
-
-            {/* Available Plans */}
+      <main className="max-w-2xl mx-auto pt-28 pb-16 px-4 sm:px-8 relative z-10">
+        <div className="mb-8 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <BackButton to="/customer/subscription" />
             <div>
-              <h2 className="mb-4 text-xl font-semibold text-gray-900">
-                Available Plans
-              </h2>
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
+                <IconSubscriptions className="w-6 h-6 text-sky-400" />
+                Change Subscription Plan
+              </h1>
+              <p className="mt-1 text-sm text-slate-400">
+                Upgrade or switch to a different recurring tier
+              </p>
+            </div>
+          </div>
+        </div>
 
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        {error && <ErrorBanner message={error} />}
 
-                {plans.map((plan) => {
-                  const isCurrent =
-                    Number(plan.id) ===
-                    Number(subscription.plan?.id);
-
-                  const isSelected =
-                    Number(selectedPlan) ===
-                    Number(plan.id);
-
-                  return (
-                    <button
-                      key={plan.id}
-                      type="button"
-                      onClick={() =>
-                        setSelectedPlan(String(plan.id))
-                      }
-                      className={`rounded-xl border p-6 text-left shadow-sm transition ${
-                        isSelected
-                          ? "border-gray-900 ring-2 ring-gray-900"
-                          : "border-gray-200 bg-white hover:border-gray-400"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between">
-
-                        <h3 className="text-lg font-bold text-gray-900">
-                          {plan.name}
-                        </h3>
-
-                        {isCurrent && (
-                          <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">
-                            Current
-                          </span>
-                        )}
-
-                      </div>
-
-                      <p className="mt-4 text-2xl font-bold text-gray-900">
-                        ₹{Number(plan.price).toFixed(2)}
-                      </p>
-
-                      <p className="mt-1 text-sm text-gray-500">
-                        {plan.billingCycle}
-                      </p>
-
-                      <p className="mt-4 text-sm text-gray-600">
-                        {plan.description ||
-                          "Subscription plan"}
-                      </p>
-
-                      {Array.isArray(plan.features) && (
-                        <div className="mt-4">
-                          <p className="text-sm font-semibold text-gray-700">
-                            Features
-                          </p>
-
-                          <ul className="mt-2 space-y-1 text-sm text-gray-600">
-                            {plan.features.map(
-                              (feature, index) => (
-                                <li key={index}>
-                                  ✓ {feature}
-                                </li>
-                              )
-                            )}
-                          </ul>
-                        </div>
-                      )}
-
-                    </button>
-                  );
-                })}
-
+        {loading ? (
+          <GlassCard className="p-12">
+            <LoadingSpinner text="Loading plan options..." />
+          </GlassCard>
+        ) : (
+          <GlassCard className="p-8 sm:p-10 border-white/10 space-y-6">
+            {/* Current Plan Indicator */}
+            <div className="p-4 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-between text-xs">
+              <div>
+                <span className="text-slate-400 font-semibold uppercase tracking-wider block">
+                  Current Plan
+                </span>
+                <p className="text-base font-bold text-white mt-0.5">
+                  {subscription?.plan?.name}
+                </p>
+              </div>
+              <div className="text-right">
+                <span className="text-base font-extrabold text-sky-400">
+                  ₹{subscription?.plan?.price}
+                </span>
+                <span className="text-slate-400 block capitalize">
+                  Per {subscription?.plan?.billingCycle?.toLowerCase()}
+                </span>
               </div>
             </div>
 
-            {/* Confirm */}
-            <div className="mt-8 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-
-              <h2 className="text-lg font-semibold text-gray-900">
-                Confirm Plan Change
-              </h2>
-
-              <p className="mt-2 text-sm text-gray-500">
-                Your subscription will be updated to the
-                selected plan.
-              </p>
-
-              <button
-                onClick={handleChangePlan}
-                disabled={saving}
-                className="mt-6 rounded-lg bg-gray-900 px-6 py-3 text-sm font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+            {/* Select New Plan */}
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+                Select New Plan Tier <span className="text-rose-400">*</span>
+              </label>
+              <select
+                value={selectedPlan}
+                onChange={(e) => setSelectedPlan(e.target.value)}
+                className="w-full glass-input rounded-xl px-4 py-3 text-sm cursor-pointer"
               >
-                {saving
-                  ? "Changing Plan..."
-                  : "Confirm Change"}
-              </button>
-
+                {plans.map((p) => (
+                  <option
+                    key={p.id}
+                    value={p.id}
+                    className="bg-slate-900 text-white"
+                    disabled={p.id === subscription?.plan?.id}
+                  >
+                    {p.name} — ₹{p.price} / {p.billingCycle?.toLowerCase()}
+                    {p.id === subscription?.plan?.id ? " (Current Tier)" : ""}
+                  </option>
+                ))}
+              </select>
             </div>
 
-          </div>
+            {/* Actions */}
+            <div className="pt-6 border-t border-white/10 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => navigate("/customer/subscription")}
+                className="btn-secondary px-5 py-2.5 rounded-xl text-xs font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleChangePlan}
+                disabled={saving || Number(selectedPlan) === Number(subscription?.plan?.id)}
+                className="btn-primary px-6 py-2.5 rounded-xl text-xs font-semibold inline-flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {saving ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Migrating Plan...</span>
+                  </>
+                ) : (
+                  <span>Confirm Plan Migration</span>
+                )}
+              </button>
+            </div>
+          </GlassCard>
         )}
-
       </main>
     </div>
   );
 }
 
 export default CustomerChangePlan;
-
